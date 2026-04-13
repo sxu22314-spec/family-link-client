@@ -1,11 +1,8 @@
-import { useNavigate, useParams } from "react-router";
+import { useNavigate } from "react-router";
 import { Puzzle, ArrowLeft, Book, Heart, Star, Lightbulb, Clock } from "lucide-react";
 
-export function Dashboard() {
+export function GrandchildCenter() {
   const navigate = useNavigate();
-  const { character } = useParams();
-
-  const isGrandparent = character === "grandparents";
 
   return (
     <div className="h-full bg-gradient-to-b from-amber-50 via-orange-50 to-rose-50 overflow-y-auto">
@@ -19,16 +16,10 @@ export function Dashboard() {
         </button>
 
         <div className="text-center mb-6">
-          <h1 className="text-3xl mb-2 text-amber-700">
-            {isGrandparent ? "Grandparents Center" : "Grandchild Center"}
-          </h1>
-          <p className="text-base text-gray-700 mb-1">
-            {isGrandparent ? "Grandparents Dashboard" : "Grandchild Dashboard"}
-          </p>
+          <h1 className="text-3xl mb-2 text-amber-700">Grandchild Center</h1>
+          <p className="text-base text-gray-700 mb-1">Grandchild Dashboard</p>
           <p className="text-gray-600 px-4">
-            {isGrandparent
-              ? "Select an activity to share your wisdom and warmth with your grandchild"
-              : "Choose a fun activity and start your joyful learning journey"}
+            Choose a fun activity and start your joyful learning journey
           </p>
         </div>
 
@@ -36,13 +27,9 @@ export function Dashboard() {
           <div className="flex items-start gap-3">
             <Star className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="currentColor" />
             <div>
-              <h3 className="text-sm text-amber-800 mb-1">
-                {isGrandparent ? "💡 Gentle Tip" : "💡 Quick Tip"}
-              </h3>
+              <h3 className="text-sm text-amber-800 mb-1">💡 Quick Tip</h3>
               <p className="text-sm text-gray-700 leading-relaxed">
-                {isGrandparent
-                  ? "Every activity creates a precious memory for your grandchild. Recording stories in a quiet place makes your voice clearer and more touching."
-                  : "Finish the puzzle to unlock a special story prepared just for you! Look closely at the pieces to help you finish faster."}
+                Finish the puzzle to unlock a special story prepared just for you! Look closely at the pieces to help you finish faster.
               </p>
             </div>
           </div>
@@ -64,9 +51,7 @@ export function Dashboard() {
 
             <div className="bg-purple-50 rounded-xl p-3 mb-4 border border-purple-100">
               <p className="text-sm text-gray-700 leading-relaxed mb-2">
-                {isGrandparent
-                  ? "Help your grandchild improve observation and memory through puzzles. You can record a story as a reward upon completion."
-                  : "Solve the puzzle to hear a story from your grandparents! It's a fun way to learn and discover."}
+                Solve the puzzle to hear a story from your grandparents! It's a fun way to learn and discover.
               </p>
               <div className="flex items-center gap-2 text-xs text-purple-700">
                 <Clock className="w-3.5 h-3.5" />
@@ -74,23 +59,11 @@ export function Dashboard() {
               </div>
             </div>
 
-            {isGrandparent && (
-              <div className="bg-amber-50 rounded-lg p-3 mb-4 border border-amber-200">
-                <div className="flex items-start gap-2">
-                  <Lightbulb className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-gray-700">
-                    <span className="text-amber-700 font-bold">Suggestion: </span>
-                    Complexity is moderate, suitable for children aged 6+. You can guide them, but letting them finish independently builds more confidence.
-                  </p>
-                </div>
-              </div>
-            )}
-
             <button
-              onClick={() => navigate(`/puzzle/${character}`)}
+              onClick={() => navigate(`/puzzle/grandson`)}
               className="w-full bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500 text-white py-4 rounded-2xl hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-95 text-base font-medium"
             >
-              {isGrandparent ? "Start Memory Puzzle →" : "Play Puzzle Game →"}
+              Play Puzzle Game →
             </button>
           </div>
 
@@ -108,9 +81,7 @@ export function Dashboard() {
             </div>
             <div className="bg-sky-50 rounded-xl p-3 mb-4 border border-sky-100">
               <p className="text-sm text-gray-600 leading-relaxed">
-                {isGrandparent
-                  ? "Build your story library, record and manage warm tales for your grandchild to listen to anytime."
-                  : "Listen to wonderful stories told by your grandparents, each filled with love and wisdom."}
+                Listen to wonderful stories told by your grandparents, each filled with love and wisdom.
               </p>
             </div>
             <button
@@ -135,9 +106,7 @@ export function Dashboard() {
             </div>
             <div className="bg-rose-50 rounded-xl p-3 mb-4 border border-rose-100">
               <p className="text-sm text-gray-600 leading-relaxed">
-                {isGrandparent
-                  ? "Share family photos and precious moments, letting your grandchild learn about family history and warmth."
-                  : "Browse family photos to see how your grandparents looked when they were young and hear their stories."}
+                Browse family photos to see how your grandparents looked when they were young and hear their stories.
               </p>
             </div>
             <button

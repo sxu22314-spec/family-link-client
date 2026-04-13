@@ -1,6 +1,9 @@
 import { useNavigate } from "react-router";
 import { Users, Baby, Heart, Sparkles } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
+import elderlyImage from "../../assets/elderly.png";
+import childrenImage from "../../assets/children.png";
+import { ArrowLeft } from "lucide-react";
 
 export function CharacterSelection() {
   const navigate = useNavigate();
@@ -12,6 +15,13 @@ export function CharacterSelection() {
   return (
     <div className="h-full bg-gradient-to-b from-amber-50 via-orange-50 to-rose-50 flex flex-col px-6 py-8 overflow-y-auto">
       <div className="w-full max-w-md mx-auto">
+        <button
+          onClick={() => navigate("/")}
+          className="flex items-center gap-2 text-amber-700 mb-4 hover:text-amber-900 bg-white/60 px-4 py-2 rounded-full backdrop-blur"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span>Back to Welcome</span>
+        </button>
         <div className="text-center mb-6">
           <div className="inline-flex items-center gap-2 mb-3">
             <Heart className="w-8 h-8 text-rose-500" fill="currentColor" />
@@ -52,14 +62,13 @@ export function CharacterSelection() {
             </div>
             <div className="h-32 rounded-2xl overflow-hidden mb-3 border-2 border-orange-100">
               <ImageWithFallback
-                src="https://images.unsplash.com/photo-1689782243186-ac0da84bb1ff?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwyfHxncmFuZHBhcmVudHMlMjBncmFuZGNoaWxkcmVuJTIwaGFwcHklMjB0b2dldGhlciUyMHNtaWxpbmd8ZW58MXx8fHwxNzc2MDY4OTgyfDA&ixlib=rb-4.1.0&q=80&w=1080"
-                alt="Grandparents"
+                src={elderlyImage}
                 className="w-full h-full object-cover"
               />
             </div>
             <div className="bg-orange-50 rounded-xl p-3 border border-orange-200">
               <p className="text-sm text-gray-700 leading-relaxed">
-                <span className="text-amber-700">✨ You can:</span> Record stories, create puzzles, and share precious memories.
+                <span className="text-amber-700">✨ You can:</span> Record stories, upload photos to create puzzles, and share precious memories.
               </p>
             </div>
           </button>
@@ -80,7 +89,7 @@ export function CharacterSelection() {
             </div>
             <div className="h-32 rounded-2xl overflow-hidden mb-3 border-2 border-sky-100">
               <ImageWithFallback
-                src="https://images.unsplash.com/photo-1574492909706-09f2b2f0d909?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHxfHxjaGlsZCUyMHBsYXlpbmclMjBwdXp6bGUlMjBoYXBweXxlbnwxfHx8fDE3NzYwNjg5ODJ8MA&ixlib=rb-4.1.0&q=80&w=1080"
+                src={childrenImage}
                 alt="Grandchild"
                 className="w-full h-full object-cover"
               />

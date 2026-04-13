@@ -1,7 +1,8 @@
 import { createBrowserRouter } from "react-router";
 import { Welcome } from "./components/Welcome";
 import { CharacterSelection } from "./components/CharacterSelection";
-import { Dashboard } from "./components/Dashboard";
+import { GrandparentsCenter } from "./components/GrandparentsCenter";
+import { GrandchildCenter } from "./components/GrandchildCenter";
 import { MemoryPuzzle } from "./components/MemoryPuzzle";
 import { StoryTime } from "./components/StoryTime";
 
@@ -15,8 +16,12 @@ export const router = createBrowserRouter([
     Component: CharacterSelection,
   },
   {
-    path: "/dashboard/:character",
-    Component: Dashboard,
+    path: "/dashboard/grandparents",
+    Component: GrandparentsCenter,
+  },
+  {
+    path: "/dashboard/grandson",
+    Component: GrandchildCenter,
   },
   {
     path: "/puzzle/:character",

@@ -28,7 +28,7 @@ export function Welcome() {
             <div>
               <h3 className="text-base mb-1 text-gray-800">Welcome to Family Space</h3>
               <p className="text-sm text-gray-600 leading-relaxed">
-                A place for grandparents and grandchildren to create beautiful memories together. Choose your identity to start the journey.
+                A place for grandparents and grandchildren to create beautiful memories together.
               </p>
             </div>
           </div>
