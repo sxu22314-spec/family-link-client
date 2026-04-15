@@ -1,11 +1,24 @@
 import { useNavigate } from "react-router";
 import { Puzzle, ArrowLeft, Book, Heart, Star, Lightbulb, Clock, Image } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+
+const FAMILY_MOMENTS_KEY = "family-moment-photos";
 
 export function GrandparentsCenter() {
   const navigate = useNavigate();
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(FAMILY_MOMENTS_KEY);
+    if (stored) {
+      try {
+        setUploadedPhotos(JSON.parse(stored));
+      } catch {
+        setUploadedPhotos([]);
+      }
+    }
+  }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -14,7 +27,11 @@ export function GrandparentsCenter() {
         const reader = new FileReader();
         reader.onload = (event) => {
           if (event.target?.result) {
-            setUploadedPhotos((prev) => [...prev, event.target.result as string]);
+            setUploadedPhotos((prev) => {
+              const next = [...prev, event.target.result as string];
+              localStorage.setItem(FAMILY_MOMENTS_KEY, JSON.stringify(next));
+              return next;
+            });
           }
         };
         reader.readAsDataURL(files[i]);
@@ -23,7 +40,11 @@ export function GrandparentsCenter() {
   };
 
   const handleRemovePhoto = (index: number) => {
-    setUploadedPhotos((prev) => prev.filter((_, i) => i !== index));
+    setUploadedPhotos((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      localStorage.setItem(FAMILY_MOMENTS_KEY, JSON.stringify(next));
+      return next;
+    });
   };
 
   return (
@@ -172,8 +193,39 @@ export function GrandparentsCenter() {
             </button>
           </div>
 
-          {/* Story Library Card - Coming Soon */}
-          <div className="bg-gradient-to-br from-white to-sky-50 rounded-3xl shadow-lg p-6 opacity-60 border-2 border-sky-200">
+          {/* History Game Card */}
+          <div className="bg-gradient-to-br from-white to-emerald-50 rounded-3xl shadow-lg p-6 border-2 border-emerald-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-green-400 via-emerald-400 to-teal-500 flex items-center justify-center shadow-md">
+                <Lightbulb className="w-7 h-7 text-white" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl text-gray-800 mb-0.5">History Guessing Game</h2>
+                <p className="text-sm text-emerald-600">Interactive Fun</p>
+              </div>
+              <div className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">Available</div>
+            </div>
+
+            <div className="bg-emerald-50 rounded-xl p-3 mb-4 border border-emerald-100">
+              <p className="text-sm text-gray-700 leading-relaxed mb-2">
+                Think of a famous Chinese historical figure and answer your grandchild's yes/no questions. Help them learn history through fun interaction!
+              </p>
+              <div className="flex items-center gap-2 text-xs text-emerald-700">
+                <Clock className="w-3.5 h-3.5" />
+                <span>Set time limit and choose a historical figure</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => navigate(`/history-game/grandparents`)}
+              className="w-full bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 text-white py-4 rounded-2xl hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-95 text-base font-medium"
+            >
+              Start History Game →
+            </button>
+          </div>
+
+          {/* Story Library Card */}
+          <div className="bg-gradient-to-br from-white to-sky-50 rounded-3xl shadow-lg p-6 border-2 border-sky-200">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center shadow-md">
                 <Book className="w-7 h-7 text-white" />
@@ -182,18 +234,34 @@ export function GrandparentsCenter() {
                 <h2 className="text-xl text-gray-800 mb-0.5">Story Library</h2>
                 <p className="text-sm text-sky-600">Wisdom & Tales</p>
               </div>
-              <div className="bg-gray-400 text-white text-xs px-2 py-1 rounded-full">Coming Soon</div>
+              <div className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">Available</div>
             </div>
+
             <div className="bg-sky-50 rounded-xl p-3 mb-4 border border-sky-100">
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Build your story library, record and manage warm tales for your grandchild to listen to anytime.
+              <p className="text-sm text-gray-700 leading-relaxed mb-2">
+                Build your story library, record and manage warm tales for your grandchild to listen to anytime. Assign tasks to make listening more engaging!
               </p>
+              <div className="flex items-center gap-2 text-xs text-sky-700">
+                <Clock className="w-3.5 h-3.5" />
+                <span>Create stories with tasks to unlock</span>
+              </div>
             </div>
+
+            <div className="bg-amber-50 rounded-lg p-3 mb-4 border border-amber-200">
+              <div className="flex items-start gap-2">
+                <Lightbulb className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-gray-700">
+                  <span className="text-amber-700 font-bold">Tip: </span>
+                  Record stories about family members, objects, or special memories. Add fun tasks to make your grandchild think and engage!
+                </p>
+              </div>
+            </div>
+
             <button
-              disabled
-              className="w-full bg-gray-300 text-gray-500 py-4 rounded-2xl cursor-not-allowed text-base"
+              onClick={() => navigate(`/story-library/grandparents`)}
+              className="w-full bg-gradient-to-r from-blue-500 via-sky-500 to-cyan-500 text-white py-4 rounded-2xl hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-95 text-base font-medium"
             >
-              Coming Soon...
+              Open Story Library →
             </button>
           </div>
         </div>

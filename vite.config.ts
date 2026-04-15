@@ -29,8 +29,18 @@ export default defineConfig({
       // Alias @ to the src directory
       '@': path.resolve(__dirname, './src'),
     },
+    
   },
+  define: {
+    'process.env': {} // 这一行是关键
+  },
+
+  // Use relative base so the app works on static hosts like figma.site
+  base: "./",
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
+
 })
+
+

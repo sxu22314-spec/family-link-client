@@ -37,10 +37,7 @@ export function CharacterSelection() {
           <div className="flex items-start gap-3">
             <Sparkles className="w-6 h-6 text-amber-500 flex-shrink-0 mt-1" />
             <div>
-              <h3 className="text-base mb-1 text-gray-800">Welcome to Family Space</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                A place for grandparents and grandchildren to create beautiful memories together. Choose your identity to start the journey.
-              </p>
+              <h3 className="text-base mb-1 text-gray-800">Choose your identity to start the journey.</h3>
             </div>
           </div>
         </div>
