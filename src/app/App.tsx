@@ -5,12 +5,12 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-900 via-orange-800 to-rose-900 flex items-center justify-center p-4">
       {/* Phone Frame */}
-      <div className="relative bg-gray-900 rounded-[3rem] p-3 shadow-2xl">
+      <div className="relative bg-gray-900 rounded-[3rem] p-3 shadow-2xl w-full max-w-[420px] sm:max-w-[480px] md:max-w-[520px]">
         {/* Phone Notch */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-7 bg-black rounded-b-3xl z-10"></div>
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 sm:w-40 h-7 bg-black rounded-b-3xl z-10"></div>
         
         {/* Phone Screen */}
-        <div className="relative w-[390px] h-[844px] bg-white rounded-[2.5rem] overflow-hidden">
+        <div className="relative w-full min-h-[700px] sm:min-h-[780px] bg-white rounded-[2.5rem] overflow-hidden">
           <RouterProvider router={router} />
         </div>
         
