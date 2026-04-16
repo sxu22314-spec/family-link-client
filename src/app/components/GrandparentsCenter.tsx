@@ -115,7 +115,6 @@ export function GrandparentsCenter() {
                 <div className="flex flex-col items-center gap-2">
                   <Image className="w-8 h-8 text-rose-400" />
                   <p className="text-sm text-gray-700 font-medium">Tap to upload photos</p>
-                  <p className="text-xs text-gray-500">or drag and drop images here</p>
                 </div>
               </button>
             </div>
