@@ -1,6 +1,6 @@
 const API_CONFIG = {
   // MySQL API endpoints
-  baseURL: "http://localhost:8080/user",
+  baseURL: "http://192.168.1.104:8080/user",
 
   // MinIO configuration
   minioEndpoint: "http://localhost:9000",
