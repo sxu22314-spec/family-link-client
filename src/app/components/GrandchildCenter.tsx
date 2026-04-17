@@ -75,7 +75,7 @@ export function GrandchildCenter() {
             </div>
 
             <button
-              onClick={() => navigate(`/puzzle/grandson`)}
+              onClick={() => navigate(`/puzzle-selection/grandson`)}
               className="w-full bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500 text-white py-4 rounded-2xl hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-95 text-base font-medium"
             >
               Play Puzzle Game →

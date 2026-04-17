@@ -4,6 +4,7 @@ import { CharacterSelection } from "./components/CharacterSelection";
 import { GrandparentsCenter } from "./components/GrandparentsCenter";
 import { GrandchildCenter } from "./components/GrandchildCenter";
 import { MemoryPuzzle } from "./components/MemoryPuzzle";
+import { PuzzleSelection } from "./components/PuzzleSelection";
 import { StoryTime } from "./components/StoryTime";
 import { StoryLibraryGrandparent } from "./components/StoryLibraryGrandparent";
 import { StoryLibraryChild } from "./components/StoryLibraryChild";
@@ -30,12 +31,24 @@ export const router = createHashRouter([
     Component: GrandchildCenter,
   },
   {
+    path: "/puzzle-selection/:character",
+    Component: PuzzleSelection,
+  },
+  {
+    path: "/puzzle/:character/:puzzleId",
+    Component: MemoryPuzzle,
+  },
+  {
     path: "/puzzle/:character",
     Component: MemoryPuzzle,
   },
   {
     path: "/history-game/:character",
     Component: HistoryGame,
+  },
+  {
+    path: "/story/:character/:puzzleId",
+    Component: StoryTime,
   },
   {
     path: "/story/:character",

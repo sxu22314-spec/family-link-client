@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import { ArrowLeft, Shuffle, Trophy, PlayCircle, Lightbulb, Target, Sparkles } from "lucide-react";
+import { ImageWithFallback } from "./figma/ImageWithFallback";
 
 interface PuzzlePiece {
   id: number;
@@ -8,9 +9,18 @@ interface PuzzlePiece {
   correctIndex: number;
 }
 
+const PUZZLE_IMAGES: { [key: string]: string } = {
+  "family-picnic": "https://images.unsplash.com/photo-1775441522416-9cf438595465?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmYW1pbHklMjBwaWNuaWMlMjBvdXRkb29ycyUyMGhhcHB5fGVufDF8fHx8MTc3NjQwNzU1M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+  "park-play": "https://images.unsplash.com/photo-1577897113051-1a0395bfc3e2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxncmFuZHBhcmVudHMlMjBwbGF5aW5nJTIwY2hpbGRyZW4lMjBwYXJrfGVufDF8fHx8MTc3NjQwNzU1M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+  "cooking-together": "https://images.unsplash.com/photo-1758874960466-fb0a3e0007bc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmYW1pbHklMjBjb29raW5nJTIwdG9nZXRoZXIlMjBraXRjaGVufGVufDF8fHx8MTc3NjM4ODk5NHww&ixlib=rb-4.1.0&q=80&w=1080",
+  "birthday-celebration": "https://images.unsplash.com/photo-1768767278997-136b49ce5d99?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmYW1pbHklMjBjZWxlYnJhdGluZyUyMGJpcnRoZGF5JTIwY2FrZXxlbnwxfHx8fDE3NzY0MDc1NTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+};
+
+const COMPLETED_PUZZLES_KEY = "completed-puzzles";
+
 export function MemoryPuzzle() {
   const navigate = useNavigate();
-  const { character } = useParams();
+  const { character, puzzleId } = useParams();
   const [pieces, setPieces] = useState<PuzzlePiece[]>([]);
   const [selectedPiece, setSelectedPiece] = useState<number | null>(null);
   const [completed, setCompleted] = useState(false);
@@ -75,6 +85,11 @@ export function MemoryPuzzle() {
       const isComplete = newPieces.every(p => p.currentIndex === p.correctIndex);
       if (isComplete) {
         setCompleted(true);
+        const completedPuzzles = JSON.parse(localStorage.getItem(COMPLETED_PUZZLES_KEY) || "[]");
+        if (!completedPuzzles.includes(puzzleId)) {
+          completedPuzzles.push(puzzleId);
+          localStorage.setItem(COMPLETED_PUZZLES_KEY, JSON.stringify(completedPuzzles));
+        }
       }
     }
   };
@@ -90,11 +105,11 @@ export function MemoryPuzzle() {
     <div className="h-full bg-gradient-to-b from-amber-50 via-orange-50 to-rose-50 overflow-y-auto">
       <div className="px-6 py-6">
         <button
-          onClick={() => navigate(`/dashboard/${character}`)}
+          onClick={() => navigate(`/puzzle-selection/${character}`)}
           className="flex items-center gap-2 text-amber-700 mb-4 hover:text-amber-900 bg-white/60 px-4 py-2 rounded-full backdrop-blur"
         >
           <ArrowLeft className="w-5 h-5" />
-          <span>Back to Hub</span>
+          <span>Back to Puzzle Selection</span>
         </button>
 
         <div className="text-center mb-4">
@@ -219,7 +234,7 @@ export function MemoryPuzzle() {
                     <div
                       className="w-full h-full bg-cover bg-center"
                       style={{
-                        backgroundImage: `url(https://images.unsplash.com/photo-1640533463401-e8ed75d2c296?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHw0fHxncmFuZHBhcmVudHMlMjBncmFuZGNoaWxkcmVuJTIwaGFwcHklMjB0b2dldGhlciUyMHNtaWxpbmd8ZW58MXx8fHwxNzc2MDY4OTgyfDA&ixlib=rb-4.1.0&q=80&w=1080)`,
+                        backgroundImage: `url(${PUZZLE_IMAGES[puzzleId || "family-picnic"]})`,
                         backgroundPosition: `${(piece.correctIndex % 3) * 50}% ${
                           Math.floor(piece.correctIndex / 3) * 50
                         }%`,
