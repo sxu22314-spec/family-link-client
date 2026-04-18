@@ -1,102 +1,120 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
-import { ArrowLeft, Lock, CheckCircle, Play, Puzzle as PuzzleIcon, Star, Trophy } from "lucide-react";
+import { ArrowLeft, CheckCircle, Play, Puzzle as PuzzleIcon, Star, Trophy } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 
+// 保持接口定义一致
 interface PuzzleOption {
   id: string;
   title: string;
   theme: string;
   imageUrl: string;
-  difficulty: string;
-  estimatedTime: string;
+  isLocked: string
 }
-
-const PUZZLES: PuzzleOption[] = [
-  {
-    id: "family-picnic",
-    title: "Family Picnic",
-    theme: "Outdoor Fun",
-    imageUrl: "https://images.unsplash.com/photo-1775441522416-9cf438595465?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmYW1pbHklMjBwaWNuaWMlMjBvdXRkb29ycyUyMGhhcHB5fGVufDF8fHx8MTc3NjQwNzU1M3ww&ixlib=rb-4.1.0&q=80&w=1080",
-    difficulty: "Easy",
-    estimatedTime: "5 mins",
-  },
-  {
-    id: "park-play",
-    title: "Park Adventure",
-    theme: "Playing Together",
-    imageUrl: "https://images.unsplash.com/photo-1577897113051-1a0395bfc3e2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxncmFuZHBhcmVudHMlMjBwbGF5aW5nJTIwY2hpbGRyZW4lMjBwYXJrfGVufDF8fHx8MTc3NjQwNzU1M3ww&ixlib=rb-4.1.0&q=80&w=1080",
-    difficulty: "Medium",
-    estimatedTime: "7 mins",
-  },
-  {
-    id: "cooking-together",
-    title: "Cooking Time",
-    theme: "Kitchen Fun",
-    imageUrl: "https://images.unsplash.com/photo-1758874960466-fb0a3e0007bc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmYW1pbHklMjBjb29raW5nJTIwdG9nZXRoZXIlMjBraXRjaGVufGVufDF8fHx8MTc3NjM4ODk5NHww&ixlib=rb-4.1.0&q=80&w=1080",
-    difficulty: "Medium",
-    estimatedTime: "7 mins",
-  },
-  {
-    id: "birthday-celebration",
-    title: "Birthday Party",
-    theme: "Special Moments",
-    imageUrl: "https://images.unsplash.com/photo-1768767278997-136b49ce5d99?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmYW1pbHklMjBjZWxlYnJhdGluZyUyMGJpcnRoZGF5JTIwY2FrZXxlbnwxfHx8fDE3NzY0MDc1NTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
-    difficulty: "Hard",
-    estimatedTime: "10 mins",
-  },
-];
-
-const COMPLETED_PUZZLES_KEY = "completed-puzzles";
 
 export function PuzzleSelection() {
   const navigate = useNavigate();
   const { character } = useParams();
-  const [completedPuzzles, setCompletedPuzzles] = useState<string[]>([]);
+
+  // --- 状态管理 ---
+  const [puzzles, setPuzzles] = useState<PuzzleOption[]>([]); // 存储后端获取的拼图
+  const [completedPuzzles, setCompletedPuzzles] = useState<string[]>([]); // 存储已解锁的 ID 列表
+  const [loading, setLoading] = useState(true); // 加载状态
   const [selectedPuzzle, setSelectedPuzzle] = useState<string | null>(null);
   const [showActionDialog, setShowActionDialog] = useState(false);
 
+  // --- 后端数据同步 ---
   useEffect(() => {
-    const stored = localStorage.getItem(COMPLETED_PUZZLES_KEY);
-    if (stored) {
+    const fetchData = async () => {
       try {
-        setCompletedPuzzles(JSON.parse(stored));
-      } catch {
-        setCompletedPuzzles([]);
+        setLoading(true);
+        // 1. 从后端获取拼图列表 (假设 userId 为当前用户)
+        // 注意：这里你可以根据实际后端路由修改 URL
+        const response = await fetch(`http://192.168.1.104:8080/puzzle/getAllpuzzles`);
+        const result = await response.json();
+
+        if (result.code === 0) {
+          // 2. 将后端数据映射到 PuzzleOption 接口格式
+          const mappedPuzzles: PuzzleOption[] = result.data.map((item: any) => ({
+            id: item.id.toString(),
+            title: item.title,
+            theme: item.theme, 
+            imageUrl: encodeURI(item.imageUrl),
+            isLocked: item.isLocked
+          }));
+          
+          setPuzzles(mappedPuzzles);
+
+          // 3. 提取已解锁的拼图 ID (后端返回数据中通常包含 unlocked 状态)
+          const completedIds = result.data
+            .filter((item: any) => item.isLocked === 1)
+            .map((item: any) => item.id.toString());
+          
+          setCompletedPuzzles(completedIds);
+        }
+      } catch (error) {
+        console.error("Failed to sync with backend:", error);
+      } finally {
+        setLoading(false);
       }
-    }
+    };
+
+    fetchData();
   }, []);
 
+  // --- 交互逻辑 ---
   const handlePuzzleClick = (puzzleId: string) => {
-    const isCompleted = completedPuzzles.includes(puzzleId);
-    
-    if (isCompleted) {
-      setSelectedPuzzle(puzzleId);
-      setShowActionDialog(true);
-    } else {
-      navigate(`/puzzle/${character}/${puzzleId}`);
-    }
-  };
+  const isCompleted = completedPuzzles.includes(puzzleId);
+  
+  // 找到当前点击的拼图对象，以便把数据传走
+  const selectedData = puzzles.find(p => p.id === puzzleId);
+
+  if (isCompleted) {
+    setSelectedPuzzle(puzzleId);
+    setShowActionDialog(true);
+  } else {
+    // 【修改点】：使用 state 传递数据
+    navigate(`/puzzle/${character}/${puzzleId}`, { 
+      state: { 
+        imageUrl: selectedData?.imageUrl, 
+        title: selectedData?.title 
+      } 
+    });
+  }
+};
 
   const handlePlayAgain = () => {
-    if (selectedPuzzle) {
-      navigate(`/puzzle/${character}/${selectedPuzzle}`);
-    }
-  };
+  if (selectedPuzzle) {
+    const selectedData = puzzles.find(p => p.id === selectedPuzzle);
+    navigate(`/puzzle/${character}/${selectedPuzzle}`, {
+      state: { 
+        imageUrl: selectedData?.imageUrl, 
+        title: selectedData?.title 
+      }
+    });
+  }
+};
 
   const handleListenStory = () => {
-    if (selectedPuzzle) {
-      navigate(`/story/${character}/${selectedPuzzle}`);
-    }
+    if (selectedPuzzle) navigate(`/story/${character}/${selectedPuzzle}`);
   };
 
   const isGrandparent = character === "grandparents";
   const completedCount = completedPuzzles.length;
-  const totalCount = PUZZLES.length;
+  const totalCount = puzzles.length;
+
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center bg-amber-50">
+        <div className="text-amber-700 animate-pulse font-medium">Loading Family Memories...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full bg-gradient-to-b from-amber-50 via-orange-50 to-rose-50 overflow-y-auto">
       <div className="px-6 py-6">
+        {/* 返回按钮 */}
         <button
           onClick={() => navigate(`/dashboard/${character}`)}
           className="flex items-center gap-2 text-amber-700 mb-4 hover:text-amber-900 bg-white/60 px-4 py-2 rounded-full backdrop-blur"
@@ -105,6 +123,7 @@ export function PuzzleSelection() {
           <span>Back to Center</span>
         </button>
 
+        {/* 标题文案 */}
         <div className="text-center mb-5">
           <h1 className="text-3xl mb-1 text-amber-700">Choose Your Puzzle</h1>
           <p className="text-base text-gray-700 mb-2">Select a Photo Puzzle</p>
@@ -115,7 +134,8 @@ export function PuzzleSelection() {
           </p>
         </div>
 
-        <div className="bg-gradient-to-r from-purple-100 to-fuchsia-100 rounded-2xl p-4 mb-5 border-2 border-purple-200">
+        {/* 进度显示卡片 */}
+        <div className="bg-gradient-to-r from-purple-100 to-fuchsia-100 rounded-2xl p-4 mb-5 border-2 border-purple-200 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Trophy className="w-6 h-6 text-purple-600" fill="currentColor" />
@@ -124,29 +144,31 @@ export function PuzzleSelection() {
                   Progress: {completedCount}/{totalCount} Completed
                 </p>
                 <p className="text-xs text-gray-600">
-                  {completedCount === totalCount
+                  {totalCount > 0 && completedCount === totalCount
                     ? "All puzzles unlocked! Amazing!"
                     : `${totalCount - completedCount} more to unlock!`}
                 </p>
               </div>
             </div>
             <div className="bg-purple-500 text-white text-lg font-bold px-4 py-2 rounded-full">
-              {Math.round((completedCount / totalCount) * 100)}%
+              {totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0}%
             </div>
           </div>
         </div>
 
+        {/* 拼图列表渲染 */}
         <div className="space-y-4">
-          {PUZZLES.map((puzzle) => {
+          {puzzles.map((puzzle) => {
             const isCompleted = completedPuzzles.includes(puzzle.id);
 
             return (
               <div
                 key={puzzle.id}
-                className={`bg-gradient-to-br from-white to-purple-50 rounded-3xl shadow-lg overflow-hidden border-2 ${
+                className={`bg-gradient-to-br from-white to-purple-50 rounded-3xl shadow-lg overflow-hidden border-2 transition-all ${
                   isCompleted ? "border-green-300" : "border-purple-200"
                 }`}
               >
+                {/* 图片区域 */}
                 <div className="relative h-40 overflow-hidden">
                   <ImageWithFallback
                     src={puzzle.imageUrl}
@@ -160,49 +182,36 @@ export function PuzzleSelection() {
                       </div>
                     </div>
                   )}
-                  {!isCompleted && (
-                    <div className="absolute top-3 right-3 bg-purple-500 text-white px-3 py-1 rounded-full text-xs font-medium">
-                      {puzzle.difficulty}
-                    </div>
-                  )}
                   {isCompleted && (
-                    <div className="absolute top-3 right-3 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                    <div className="absolute top-3 right-3 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 shadow-sm">
                       <CheckCircle className="w-3 h-3" />
                       Unlocked
                     </div>
                   )}
                 </div>
 
+                {/* 文字与按钮区域 */}
                 <div className="p-5">
                   <div className="mb-3">
                     <h3 className="text-xl text-gray-800 mb-1">{puzzle.title}</h3>
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2">
                       <Star className="w-4 h-4 text-amber-500" fill="currentColor" />
                       <span className="text-sm text-purple-600">{puzzle.theme}</span>
                     </div>
-                    <p className="text-sm text-gray-600">
-                      Estimated Time: {puzzle.estimatedTime}
-                    </p>
                   </div>
 
                   <button
                     onClick={() => handlePuzzleClick(puzzle.id)}
                     className={`w-full py-3 rounded-2xl font-medium text-base transition-all transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 ${
                       isCompleted
-                        ? "bg-gradient-to-r from-green-400 to-emerald-500 text-white hover:shadow-xl"
-                        : "bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500 text-white hover:shadow-xl"
+                        ? "bg-gradient-to-r from-green-400 to-emerald-500 text-white hover:shadow-xl shadow-green-100"
+                        : "bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500 text-white hover:shadow-xl shadow-purple-100"
                     }`}
                   >
                     {isCompleted ? (
-                      <>
-                        <Play className="w-5 h-5" />
-                        Play or Listen
-                      </>
+                      <><Play className="w-5 h-5" /> Play or Listen</>
                     ) : (
-                      <>
-                        <PuzzleIcon className="w-5 h-5" />
-                        Start Puzzle
-                      </>
+                      <><PuzzleIcon className="w-5 h-5" /> Start Puzzle</>
                     )}
                   </button>
                 </div>
@@ -211,49 +220,42 @@ export function PuzzleSelection() {
           })}
         </div>
 
+        {/* 底部提示 */}
         {!isGrandparent && (
           <div className="mt-6 bg-gradient-to-r from-orange-100 to-rose-100 rounded-2xl p-4 border-2 border-orange-200">
             <div className="text-center">
-              <p className="text-sm text-gray-700 mb-1">
-                💡 Complete puzzles to unlock more stories!
-              </p>
-              <p className="text-xs text-gray-600">
-                Each puzzle reveals a special memory from your grandparents
-              </p>
+              <p className="text-sm text-gray-700 mb-1">💡 Complete puzzles to unlock more stories!</p>
+              <p className="text-xs text-gray-600">Each puzzle reveals a special memory from your grandparents</p>
             </div>
           </div>
         )}
       </div>
 
-      {/* Action Dialog for Completed Puzzles */}
+      {/* 弹窗：已解锁拼图的操作选择 */}
       {showActionDialog && selectedPuzzle && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-6 z-50 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl scale-in-center">
             <div className="text-center mb-5">
-              <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-3">
+              <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
                 <Trophy className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl text-gray-800 mb-2">Puzzle Unlocked!</h3>
-              <p className="text-sm text-gray-600">
-                What would you like to do?
-              </p>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">Puzzle Unlocked!</h3>
+              <p className="text-sm text-gray-600">What would you like to do with this memory?</p>
             </div>
 
             <div className="space-y-3">
               <button
                 onClick={handlePlayAgain}
-                className="w-full bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500 text-white py-4 rounded-2xl hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 text-base font-medium"
+                className="w-full bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500 text-white py-4 rounded-2xl hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 text-base font-bold shadow-md shadow-purple-100"
               >
-                <PuzzleIcon className="w-5 h-5" />
-                Play Puzzle Again
+                <PuzzleIcon className="w-5 h-5" /> Play Puzzle Again
               </button>
 
               <button
                 onClick={handleListenStory}
-                className="w-full bg-gradient-to-r from-orange-400 via-rose-400 to-pink-500 text-white py-4 rounded-2xl hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 text-base font-medium"
+                className="w-full bg-gradient-to-r from-orange-400 via-rose-400 to-pink-500 text-white py-4 rounded-2xl hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 text-base font-bold shadow-md shadow-orange-100"
               >
-                <Play className="w-5 h-5" />
-                Listen to Story
+                <Play className="w-5 h-5" /> Listen to Story
               </button>
 
               <button
