@@ -17,6 +17,8 @@ import {
   PuzzleStartPayload,
   PuzzleMovePayload,
   PuzzleCompletePayload,
+  PuzzleHelpRequestPayload,
+  PuzzleHelpAcceptPayload,
   PuzzleRole,
 } from "../../services/puzzleSyncClient";
 
@@ -64,6 +66,9 @@ export function MemoryPuzzle() {
   const [syncConnected, setSyncConnected] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [lastMoveHighlight, setLastMoveHighlight] = useState<MoveHighlight | null>(null);
+  const [activeControllerRole, setActiveControllerRole] = useState<PuzzleRole>("grandson");
+  const [helpRequested, setHelpRequested] = useState(false);
+  const [incomingHelpRequest, setIncomingHelpRequest] = useState(false);
 
   const syncClientRef = useRef<PuzzleSyncClient | null>(null);
 
@@ -71,7 +76,7 @@ export function MemoryPuzzle() {
   const role: PuzzleRole = isGrandparent ? "grandparents" : "grandson";
   const syncEnabled = Boolean(routeState?.syncEnabled && puzzleId);
   const roomId = routeState?.syncRoomId || `memory-puzzle-${puzzleId ?? "default"}`;
-  const canOperatePuzzle = !syncEnabled || role === "grandson";
+  const canOperatePuzzle = !syncEnabled || role === activeControllerRole;
 
   const createShuffledBoard = () => {
     const board = Array.from({ length: GRID_SIZE }, (_, index) => index);
@@ -164,6 +169,9 @@ export function MemoryPuzzle() {
     setSelectedPiece(null);
     setHasSessionStarted(false);
     setLastMoveHighlight(null);
+    setActiveControllerRole("grandson");
+    setHelpRequested(false);
+    setIncomingHelpRequest(false);
   }, [puzzleId, syncEnabled]);
 
   useEffect(() => {
@@ -172,7 +180,13 @@ export function MemoryPuzzle() {
     }
 
     const handleEvent = (event: PuzzleSyncEnvelope) => {
-      if (event.roomId !== roomId || event.puzzleId !== puzzleId) {
+      // Be tolerant to backend type differences (number/string) for IDs.
+      const eventRoomId = String(event.roomId ?? "");
+      const eventPuzzleId = String(event.puzzleId ?? "");
+      const currentRoomId = String(roomId ?? "");
+      const currentPuzzleId = String(puzzleId ?? "");
+
+      if (eventRoomId !== currentRoomId || eventPuzzleId !== currentPuzzleId) {
         return;
       }
 
@@ -189,6 +203,9 @@ export function MemoryPuzzle() {
         }
 
         applyBoard(nextBoard, 0, false);
+        setActiveControllerRole("grandson");
+        setHelpRequested(false);
+        setIncomingHelpRequest(false);
       }
 
       if (event.eventType === "MOVE") {
@@ -207,6 +224,31 @@ export function MemoryPuzzle() {
       if (event.eventType === "COMPLETE") {
         const payload = event.payload as PuzzleCompletePayload;
         applyBoard(payload.board ?? [], payload.moves ?? moves, true);
+
+        if (role === "grandson" && puzzleId) {
+          const completedPuzzles = JSON.parse(localStorage.getItem("completed-puzzles") || "[]");
+          if (!completedPuzzles.includes(puzzleId)) {
+            completedPuzzles.push(puzzleId);
+            localStorage.setItem("completed-puzzles", JSON.stringify(completedPuzzles));
+          }
+        }
+      }
+
+      if (event.eventType === "HELP_REQUEST") {
+        const payload = event.payload as PuzzleHelpRequestPayload;
+        if (payload.requestedBy === "grandson") {
+          setHelpRequested(true);
+          if (role === "grandparents") {
+            setIncomingHelpRequest(true);
+          }
+        }
+      }
+
+      if (event.eventType === "HELP_ACCEPT") {
+        const payload = event.payload as PuzzleHelpAcceptPayload;
+        setActiveControllerRole(payload.newController ?? "grandparents");
+        setHelpRequested(false);
+        setIncomingHelpRequest(false);
       }
     };
 
@@ -245,6 +287,9 @@ export function MemoryPuzzle() {
 
     const board = createShuffledBoard();
     applyBoard(board, 0, false);
+    setActiveControllerRole("grandson");
+    setHelpRequested(false);
+    setIncomingHelpRequest(false);
 
     // BACKEND REQUIRED: this message should be broadcast by Spring Boot to both roles in the room.
     syncClientRef.current?.sendStart({
@@ -252,6 +297,33 @@ export function MemoryPuzzle() {
       imageUrl: puzzleInfo.imageUrl,
       title: puzzleInfo.title,
       theme: puzzleInfo.theme,
+    });
+  };
+
+  const handleRequestGrandparentHelp = () => {
+    if (!syncEnabled || completed || role !== "grandson" || activeControllerRole !== "grandson") {
+      return;
+    }
+
+    setHelpRequested(true);
+    // BACKEND REQUIRED: broadcast HELP_REQUEST to room so the grandparent can accept in real time.
+    syncClientRef.current?.sendHelpRequest({
+      requestedBy: "grandson",
+    });
+  };
+
+  const handleAcceptHelpRequest = () => {
+    if (!syncEnabled || completed || role !== "grandparents" || !incomingHelpRequest) {
+      return;
+    }
+
+    setActiveControllerRole("grandparents");
+    setHelpRequested(false);
+    setIncomingHelpRequest(false);
+    // BACKEND REQUIRED: broadcast HELP_ACCEPT and new controller role for both clients.
+    syncClientRef.current?.sendHelpAccept({
+      acceptedBy: "grandparents",
+      newController: "grandparents",
     });
   };
 
@@ -297,7 +369,7 @@ export function MemoryPuzzle() {
       token: Date.now(),
     });
 
-    if (syncEnabled && role === "grandson") {
+    if (syncEnabled && role === activeControllerRole) {
       // BACKEND REQUIRED: relay move for spectator rendering on grandparent page.
       syncClientRef.current?.sendMove({
         board: nextBoard,
@@ -308,18 +380,18 @@ export function MemoryPuzzle() {
     }
 
     if (nextCompleted && puzzleId) {
-      if (!isGrandparent) {
+      if (role === "grandson") {
         const completedPuzzles = JSON.parse(localStorage.getItem("completed-puzzles") || "[]");
         if (!completedPuzzles.includes(puzzleId)) {
           completedPuzzles.push(puzzleId);
           localStorage.setItem("completed-puzzles", JSON.stringify(completedPuzzles));
         }
-
-        // Sync completion state to backend so PuzzleSelection can rely on isLocked from server.
-        void markPuzzleCompletedOnBackend(puzzleId);
       }
 
-      if (syncEnabled && role === "grandson") {
+      // Sync completion state to backend so PuzzleSelection can rely on isLocked from server.
+      void markPuzzleCompletedOnBackend(puzzleId);
+
+      if (syncEnabled && role === activeControllerRole) {
         // BACKEND REQUIRED: emit COMPLETE so the grandparent UI can show "listen together" prompt immediately.
         syncClientRef.current?.sendComplete({
           board: nextBoard,
@@ -427,7 +499,35 @@ export function MemoryPuzzle() {
             {syncEnabled && isGrandparent && (
               <div className="bg-amber-100 border border-amber-300 rounded-2xl p-3 mb-4 flex items-center gap-2 text-amber-900 text-sm">
                 <Eye className="w-4 h-4" />
-                Spectator mode: only your grandchild can move pieces.
+                {activeControllerRole === "grandson"
+                  ? "Spectator mode: your grandchild is currently operating the puzzle."
+                  : "You now have control and can help complete the puzzle."}
+              </div>
+            )}
+
+            {syncEnabled && role === "grandson" && activeControllerRole === "grandson" && !completed && (
+              <div className="mb-4">
+                <button
+                  onClick={handleRequestGrandparentHelp}
+                  disabled={helpRequested}
+                  className="w-full bg-gradient-to-r from-sky-500 to-cyan-500 text-white py-4 rounded-2xl font-bold shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {helpRequested ? "Help Request Sent to Grandparent" : "Ask Grandparent for Help"}
+                </button>
+              </div>
+            )}
+
+            {syncEnabled && role === "grandparents" && incomingHelpRequest && !completed && (
+              <div className="bg-gradient-to-r from-sky-50 to-cyan-50 border-2 border-sky-300 rounded-2xl p-4 mb-4">
+                <p className="text-sm text-sky-900 mb-3">
+                  Your grandchild is asking for help. Accept to take puzzle control now.
+                </p>
+                <button
+                  onClick={handleAcceptHelpRequest}
+                  className="w-full bg-gradient-to-r from-sky-500 to-cyan-500 text-white py-3 rounded-xl font-bold shadow-md"
+                >
+                  Accept and Take Control
+                </button>
               </div>
             )}
 

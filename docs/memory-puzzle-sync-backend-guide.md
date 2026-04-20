@@ -19,6 +19,8 @@ The frontend now sends and receives STOMP messages for a live puzzle room.
 - `/app/puzzle.start`
 - `/app/puzzle.move`
 - `/app/puzzle.complete`
+- `/app/puzzle.help-request`
+- `/app/puzzle.help-accept`
 
 ### Message envelope (must match this shape)
 
@@ -102,7 +104,9 @@ public enum PuzzleEventType {
     JOIN,
     START,
     MOVE,
-    COMPLETE
+    COMPLETE,
+    HELP_REQUEST,
+    HELP_ACCEPT
 }
 ```
 
@@ -181,6 +185,19 @@ public class PuzzleSyncController {
         broadcast(event);
     }
 
+    @MessageMapping("/puzzle.help-request")
+    public void helpRequest(@Valid @Payload PuzzleSyncEnvelope event) {
+        // Optional validation: only allow actorRole=grandson
+        broadcast(event);
+    }
+
+    @MessageMapping("/puzzle.help-accept")
+    public void helpAccept(@Valid @Payload PuzzleSyncEnvelope event) {
+        // Optional validation: only allow actorRole=grandparents
+        // payload example: { "acceptedBy":"grandparents", "newController":"grandparents" }
+        broadcast(event);
+    }
+
     private void broadcast(PuzzleSyncEnvelope event) {
         String topic = "/topic/puzzle/" + event.getRoomId();
         messagingTemplate.convertAndSend(topic, event);
@@ -194,7 +211,10 @@ For production:
 
 - Validate that `puzzleId` belongs to this family/session.
 - Validate actor role by authenticated user token, not by `actorRole` from frontend.
-- Reject `MOVE` and `COMPLETE` if sender is not grandson.
+- Keep room state for `currentControllerRole`.
+- Reject `MOVE` and `COMPLETE` if sender is not the current controller.
+- Start with `currentControllerRole=grandson` after START.
+- On HELP_ACCEPT, set `currentControllerRole=grandparents`.
 - Add room timeout and cleanup if no heartbeat/activity.
 
 ## 7. CORS and security notes
@@ -223,6 +243,8 @@ For production, do not leave all endpoints public.
   - `/app/puzzle.start`
   - `/app/puzzle.move`
   - `/app/puzzle.complete`
+  - `/app/puzzle.help-request`
+  - `/app/puzzle.help-accept`
 - Frontend subscribes to:
   - `/topic/puzzle/{roomId}`
 
@@ -248,8 +270,13 @@ VITE_PUZZLE_WS_TOPIC_PREFIX=/topic
 6. Move pieces in A:
    - Verify B updates piece positions live.
    - Verify move highlight is visible in B.
-7. Complete puzzle in A:
+7. In A (grandchild), click `Ask Grandparent for Help`.
+8. Verify B (grandparent) receives a real-time help request prompt.
+9. Click `Accept and Take Control` in B.
+10. Verify B can move puzzle pieces and A becomes spectator.
+11. Complete puzzle in B:
    - Verify B shows "Listen Together" prompt.
+   - Verify A also sees completed state and can listen to story.
 
 ## 10. Troubleshooting
 
@@ -262,6 +289,33 @@ VITE_PUZZLE_WS_TOPIC_PREFIX=/topic
 - If disconnected repeatedly:
   - Check reverse proxy websocket upgrade settings.
   - Increase heartbeat timeout and verify server resources.
+
+## 11. Deployment Summary (Spring Boot)
+
+1. Build package:
+   - `mvn clean package -DskipTests`
+2. Run locally:
+   - `java -jar target/your-app.jar`
+3. Production reverse proxy (Nginx) must support WebSocket upgrade for `/ws`:
+
+```nginx
+location /ws/ {
+    proxy_pass http://127.0.0.1:8080/ws/;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+}
+```
+
+4. Open required server ports:
+   - App port (for example `8080`) or proxy port (`80/443`).
+5. Configure frontend `.env`:
+   - `VITE_PUZZLE_WS_HTTP_ENDPOINT=http://<your-domain-or-ip>/ws`
+6. Health checks before release:
+   - Two-role sync works (`START`, `MOVE`, `COMPLETE`).
+   - Help transfer works (`HELP_REQUEST`, `HELP_ACCEPT`).
+   - Completion updates puzzle `isLocked` to `0` via REST endpoint.
 
 ---
 

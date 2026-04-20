@@ -2,7 +2,13 @@ import { Client, IMessage, StompSubscription } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 
 export type PuzzleRole = "grandson" | "grandparents";
-export type PuzzleEventType = "JOIN" | "START" | "MOVE" | "COMPLETE";
+export type PuzzleEventType =
+  | "JOIN"
+  | "START"
+  | "MOVE"
+  | "COMPLETE"
+  | "HELP_REQUEST"
+  | "HELP_ACCEPT";
 
 export interface PuzzleSyncEnvelope<TPayload = unknown> {
   eventType: PuzzleEventType;
@@ -32,6 +38,15 @@ export interface PuzzleCompletePayload {
   moves: number;
 }
 
+export interface PuzzleHelpRequestPayload {
+  requestedBy: PuzzleRole;
+}
+
+export interface PuzzleHelpAcceptPayload {
+  acceptedBy: PuzzleRole;
+  newController: PuzzleRole;
+}
+
 interface PuzzleSyncClientOptions {
   roomId: string;
   puzzleId: string;
@@ -57,6 +72,8 @@ const TOPIC_PREFIX = import.meta.env.VITE_PUZZLE_WS_TOPIC_PREFIX || "/topic";
  *    - /app/puzzle.start
  *    - /app/puzzle.move
  *    - /app/puzzle.complete
+ *    - /app/puzzle.help-request
+ *    - /app/puzzle.help-accept
  */
 export class PuzzleSyncClient {
   private client: Client;
@@ -118,6 +135,14 @@ export class PuzzleSyncClient {
     this.publish("COMPLETE", "puzzle.complete", payload);
   }
 
+  sendHelpRequest(payload: PuzzleHelpRequestPayload) {
+    this.publish("HELP_REQUEST", "puzzle.help-request", payload);
+  }
+
+  sendHelpAccept(payload: PuzzleHelpAcceptPayload) {
+    this.publish("HELP_ACCEPT", "puzzle.help-accept", payload);
+  }
+
   private handleMessage = (message: IMessage) => {
     try {
       const parsed = JSON.parse(message.body) as PuzzleSyncEnvelope;
@@ -151,4 +176,3 @@ export class PuzzleSyncClient {
     });
   }
 }
-
