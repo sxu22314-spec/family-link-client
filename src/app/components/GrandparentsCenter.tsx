@@ -135,7 +135,6 @@ export function GrandparentsCenter() {
                         onClick={() => handleRemovePhoto(index)}
                         className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
                       >
-                        ✕
                       </button>
                     </div>
                   ))}
@@ -147,7 +146,9 @@ export function GrandparentsCenter() {
               onClick={() => fileInputRef.current?.click()}
               className="w-full bg-gradient-to-r from-red-500 via-rose-500 to-orange-500 text-white py-4 rounded-2xl hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-95 text-base font-medium"
             >
-              {uploadedPhotos.length > 0 ? `View & Share Moments (${uploadedPhotos.length}) →` : "Start Sharing Photos →"}
+              {uploadedPhotos.length > 0 
+                ? `View & Share Moments (${uploadedPhotos.length}) →` 
+                : "Start Sharing Photos"}
             </button>
           </div>
 
@@ -185,10 +186,10 @@ export function GrandparentsCenter() {
             </div>
 
             <button
-              onClick={() => navigate(`/puzzle/grandparents`)}
+              onClick={() => navigate(`/puzzle-selection/grandparents`)}
               className="w-full bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500 text-white py-4 rounded-2xl hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-95 text-base font-medium"
             >
-              Start Memory Puzzle →
+              Start Memory Puzzle
             </button>
           </div>
 
@@ -219,7 +220,7 @@ export function GrandparentsCenter() {
               onClick={() => navigate(`/history-game/grandparents`)}
               className="w-full bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 text-white py-4 rounded-2xl hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-95 text-base font-medium"
             >
-              Start History Game →
+              Start History Game
             </button>
           </div>
 
@@ -260,7 +261,7 @@ export function GrandparentsCenter() {
               onClick={() => navigate(`/story-library/grandparents`)}
               className="w-full bg-gradient-to-r from-blue-500 via-sky-500 to-cyan-500 text-white py-4 rounded-2xl hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-95 text-base font-medium"
             >
-              Open Story Library →
+              Open Story Library
             </button>
           </div>
         </div>
@@ -272,3 +273,4 @@ export function GrandparentsCenter() {
     </div>
   );
 }
+

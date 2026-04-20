@@ -3,53 +3,71 @@ import { useNavigate, useParams } from "react-router";
 import { ArrowLeft, CheckCircle, Play, Puzzle as PuzzleIcon, Star, Trophy } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 
-// 保持接口定义一致
 interface PuzzleOption {
   id: string;
   title: string;
   theme: string;
   imageUrl: string;
-  isLocked: string
+  isLocked: number | string | boolean | null | undefined;
 }
 
 export function PuzzleSelection() {
   const navigate = useNavigate();
   const { character } = useParams();
 
-  // --- 状态管理 ---
-  const [puzzles, setPuzzles] = useState<PuzzleOption[]>([]); // 存储后端获取的拼图
-  const [completedPuzzles, setCompletedPuzzles] = useState<string[]>([]); // 存储已解锁的 ID 列表
-  const [loading, setLoading] = useState(true); // 加载状态
+  const [puzzles, setPuzzles] = useState<PuzzleOption[]>([]);
+  const [completedPuzzles, setCompletedPuzzles] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedPuzzle, setSelectedPuzzle] = useState<string | null>(null);
   const [showActionDialog, setShowActionDialog] = useState(false);
 
-  // --- 后端数据同步 ---
+  // Normalize backend values to a predictable 0/1 lock state.
+  // 1 means locked, 0 means unlocked(completed).
+  const normalizeLockValue = (value: number | string | boolean | null | undefined) => {
+    if (typeof value === "number") return value;
+    if (typeof value === "boolean") return value ? 1 : 0;
+    if (typeof value === "string") {
+      const parsed = Number(value);
+      if (!Number.isNaN(parsed)) return parsed;
+      if (value.toLowerCase() === "true") return 1;
+      if (value.toLowerCase() === "false") return 0;
+    }
+    return 1;
+  };
+
+  const isPuzzleCompletedByBackend = (lockValue: number | string | boolean | null | undefined) =>
+    normalizeLockValue(lockValue) === 0;
+
+  const buildPuzzleRouteState = (puzzle: PuzzleOption | undefined) => ({
+    imageUrl: puzzle?.imageUrl ?? "",
+    title: puzzle?.title ?? "Family Memory",
+    theme: puzzle?.theme ?? "",
+    syncEnabled: true,
+    syncRoomId: puzzle?.id ? `memory-puzzle-${puzzle.id}` : undefined,
+  });
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // 1. 从后端获取拼图列表 (假设 userId 为当前用户)
-        // 注意：这里你可以根据实际后端路由修改 URL
-        const response = await fetch(`http://192.168.1.104:8080/puzzle/getAllpuzzles`);
+        const response = await fetch("http://192.168.1.104:8080/puzzle/getAllpuzzles");
         const result = await response.json();
 
         if (result.code === 0) {
-          // 2. 将后端数据映射到 PuzzleOption 接口格式
           const mappedPuzzles: PuzzleOption[] = result.data.map((item: any) => ({
             id: item.id.toString(),
             title: item.title,
-            theme: item.theme, 
+            theme: item.theme,
             imageUrl: encodeURI(item.imageUrl),
-            isLocked: item.isLocked
+            isLocked: item.isLocked,
           }));
-          
+
           setPuzzles(mappedPuzzles);
 
-          // 3. 提取已解锁的拼图 ID (后端返回数据中通常包含 unlocked 状态)
           const completedIds = result.data
-            .filter((item: any) => item.isLocked === 1)
+            .filter((item: any) => isPuzzleCompletedByBackend(item.isLocked))
             .map((item: any) => item.id.toString());
-          
+
           setCompletedPuzzles(completedIds);
         }
       } catch (error) {
@@ -62,38 +80,29 @@ export function PuzzleSelection() {
     fetchData();
   }, []);
 
-  // --- 交互逻辑 ---
   const handlePuzzleClick = (puzzleId: string) => {
-  const isCompleted = completedPuzzles.includes(puzzleId);
-  
-  // 找到当前点击的拼图对象，以便把数据传走
-  const selectedData = puzzles.find(p => p.id === puzzleId);
+    const isCompleted = completedPuzzles.includes(puzzleId);
+    const selectedData = puzzles.find((p) => p.id === puzzleId);
 
-  if (isCompleted) {
-    setSelectedPuzzle(puzzleId);
-    setShowActionDialog(true);
-  } else {
-    // 【修改点】：使用 state 传递数据
-    navigate(`/puzzle/${character}/${puzzleId}`, { 
-      state: { 
-        imageUrl: selectedData?.imageUrl, 
-        title: selectedData?.title 
-      } 
+    if (isCompleted) {
+      setSelectedPuzzle(puzzleId);
+      setShowActionDialog(true);
+      return;
+    }
+
+    navigate(`/puzzle/${character}/${puzzleId}`, {
+      state: buildPuzzleRouteState(selectedData),
     });
-  }
-};
+  };
 
   const handlePlayAgain = () => {
-  if (selectedPuzzle) {
-    const selectedData = puzzles.find(p => p.id === selectedPuzzle);
+    if (!selectedPuzzle) return;
+
+    const selectedData = puzzles.find((p) => p.id === selectedPuzzle);
     navigate(`/puzzle/${character}/${selectedPuzzle}`, {
-      state: { 
-        imageUrl: selectedData?.imageUrl, 
-        title: selectedData?.title 
-      }
+      state: buildPuzzleRouteState(selectedData),
     });
-  }
-};
+  };
 
   const handleListenStory = () => {
     if (selectedPuzzle) navigate(`/story/${character}/${selectedPuzzle}`);
@@ -114,7 +123,6 @@ export function PuzzleSelection() {
   return (
     <div className="h-full bg-gradient-to-b from-amber-50 via-orange-50 to-rose-50 overflow-y-auto">
       <div className="px-6 py-6">
-        {/* 返回按钮 */}
         <button
           onClick={() => navigate(`/dashboard/${character}`)}
           className="flex items-center gap-2 text-amber-700 mb-4 hover:text-amber-900 bg-white/60 px-4 py-2 rounded-full backdrop-blur"
@@ -123,18 +131,16 @@ export function PuzzleSelection() {
           <span>Back to Center</span>
         </button>
 
-        {/* 标题文案 */}
         <div className="text-center mb-5">
           <h1 className="text-3xl mb-1 text-amber-700">Choose Your Puzzle</h1>
           <p className="text-base text-gray-700 mb-2">Select a Photo Puzzle</p>
           <p className="text-sm text-gray-600 px-4">
             {isGrandparent
-              ? "Watch your grandchild solve beautiful family memories"
+              ? "Wait for your grandchild to start, then watch every puzzle move in real time."
               : "Pick a puzzle and unlock a special story!"}
           </p>
         </div>
 
-        {/* 进度显示卡片 */}
         <div className="bg-gradient-to-r from-purple-100 to-fuchsia-100 rounded-2xl p-4 mb-5 border-2 border-purple-200 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -156,7 +162,6 @@ export function PuzzleSelection() {
           </div>
         </div>
 
-        {/* 拼图列表渲染 */}
         <div className="space-y-4">
           {puzzles.map((puzzle) => {
             const isCompleted = completedPuzzles.includes(puzzle.id);
@@ -168,13 +173,8 @@ export function PuzzleSelection() {
                   isCompleted ? "border-green-300" : "border-purple-200"
                 }`}
               >
-                {/* 图片区域 */}
                 <div className="relative h-40 overflow-hidden">
-                  <ImageWithFallback
-                    src={puzzle.imageUrl}
-                    alt={puzzle.title}
-                    className="w-full h-full object-cover"
-                  />
+                  <ImageWithFallback src={puzzle.imageUrl} alt={puzzle.title} className="w-full h-full object-cover" />
                   {isCompleted && (
                     <div className="absolute inset-0 bg-green-500/20 flex items-center justify-center">
                       <div className="bg-white/95 backdrop-blur rounded-full p-3 shadow-lg">
@@ -190,7 +190,6 @@ export function PuzzleSelection() {
                   )}
                 </div>
 
-                {/* 文字与按钮区域 */}
                 <div className="p-5">
                   <div className="mb-3">
                     <h3 className="text-xl text-gray-800 mb-1">{puzzle.title}</h3>
@@ -209,9 +208,13 @@ export function PuzzleSelection() {
                     }`}
                   >
                     {isCompleted ? (
-                      <><Play className="w-5 h-5" /> Play or Listen</>
+                      <>
+                        <Play className="w-5 h-5" /> Play or Listen
+                      </>
                     ) : (
-                      <><PuzzleIcon className="w-5 h-5" /> Start Puzzle</>
+                      <>
+                        <PuzzleIcon className="w-5 h-5" /> Start Puzzle
+                      </>
                     )}
                   </button>
                 </div>
@@ -220,18 +223,16 @@ export function PuzzleSelection() {
           })}
         </div>
 
-        {/* 底部提示 */}
         {!isGrandparent && (
           <div className="mt-6 bg-gradient-to-r from-orange-100 to-rose-100 rounded-2xl p-4 border-2 border-orange-200">
             <div className="text-center">
-              <p className="text-sm text-gray-700 mb-1">💡 Complete puzzles to unlock more stories!</p>
-              <p className="text-xs text-gray-600">Each puzzle reveals a special memory from your grandparents</p>
+              <p className="text-sm text-gray-700 mb-1">Complete puzzles to unlock more stories!</p>
+              <p className="text-xs text-gray-600">Each puzzle reveals a special memory from your grandparents.</p>
             </div>
           </div>
         )}
       </div>
 
-      {/* 弹窗：已解锁拼图的操作选择 */}
       {showActionDialog && selectedPuzzle && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-6 z-50 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl scale-in-center">

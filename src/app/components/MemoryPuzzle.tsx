@@ -1,6 +1,24 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useParams, useLocation } from "react-router"; // 必须引入 useLocation
-import { ArrowLeft, Shuffle, Trophy, PlayCircle, Lightbulb, Target, Sparkles } from "lucide-react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useNavigate, useParams, useLocation } from "react-router";
+import {
+  ArrowLeft,
+  Shuffle,
+  Trophy,
+  PlayCircle,
+  Target,
+  Sparkles,
+  Hourglass,
+  Radio,
+  Eye,
+} from "lucide-react";
+import {
+  PuzzleSyncClient,
+  PuzzleSyncEnvelope,
+  PuzzleStartPayload,
+  PuzzleMovePayload,
+  PuzzleCompletePayload,
+  PuzzleRole,
+} from "../../services/puzzleSyncClient";
 
 interface PuzzlePiece {
   id: number;
@@ -8,106 +26,331 @@ interface PuzzlePiece {
   correctIndex: number;
 }
 
+interface PuzzleRouteState {
+  imageUrl?: string;
+  title?: string;
+  theme?: string;
+  syncEnabled?: boolean;
+  syncRoomId?: string;
+}
+
+interface MoveHighlight {
+  fromIndex: number;
+  toIndex: number;
+  token: number;
+}
+
+const GRID_SIZE = 9;
+const PUZZLE_API_BASE_URL = import.meta.env.VITE_PUZZLE_API_BASE_URL || "http://192.168.1.104:8080/puzzle";
+
 export function MemoryPuzzle() {
   const navigate = useNavigate();
-  const location = useLocation(); // 获取从 PuzzleSelection 传来的 state
+  const location = useLocation();
   const { character, puzzleId } = useParams();
 
-  // --- 核心数据获取：直接使用传过来的 state ---
-  // 如果用户刷新页面导致 state 丢失，这里提供一个兜底方案
-  const puzzleInfo = location.state || {
-    imageUrl: "", 
-    title: "Family Memory",
-    theme: ""
-  };
+  const routeState = (location.state as PuzzleRouteState | null) ?? null;
+
+  const [puzzleInfo, setPuzzleInfo] = useState({
+    imageUrl: routeState?.imageUrl ?? "",
+    title: routeState?.title ?? "Family Memory",
+    theme: routeState?.theme ?? "",
+  });
 
   const [pieces, setPieces] = useState<PuzzlePiece[]>([]);
   const [selectedPiece, setSelectedPiece] = useState<number | null>(null);
   const [completed, setCompleted] = useState(false);
   const [moves, setMoves] = useState(0);
+  const [hasSessionStarted, setHasSessionStarted] = useState(!(routeState?.syncEnabled && puzzleId));
+  const [syncConnected, setSyncConnected] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [lastMoveHighlight, setLastMoveHighlight] = useState<MoveHighlight | null>(null);
+
+  const syncClientRef = useRef<PuzzleSyncClient | null>(null);
 
   const isGrandparent = character === "grandparents";
-  const gridSize = 9; // 3x3 拼图
+  const role: PuzzleRole = isGrandparent ? "grandparents" : "grandson";
+  const syncEnabled = Boolean(routeState?.syncEnabled && puzzleId);
+  const roomId = routeState?.syncRoomId || `memory-puzzle-${puzzleId ?? "default"}`;
+  const canOperatePuzzle = !syncEnabled || role === "grandson";
 
-  // 初始化拼图
-  useEffect(() => {
-    initializePuzzle();
-  }, [puzzleId]);
+  const createShuffledBoard = () => {
+    const board = Array.from({ length: GRID_SIZE }, (_, index) => index);
 
-  const initializePuzzle = () => {
-    // 生成 0-8 的序列
-    const newPieces: PuzzlePiece[] = Array.from({ length: gridSize }, (_, i) => ({
-      id: i,
-      currentIndex: i,
-      correctIndex: i,
-    }));
-
-    // 打乱顺序
-    const shuffled = [...newPieces];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      const tempIndex = shuffled[i].currentIndex;
-      shuffled[i].currentIndex = shuffled[j].currentIndex;
-      shuffled[j].currentIndex = tempIndex;
+    for (let i = board.length - 1; i > 0; i -= 1) {
+      const randomIndex = Math.floor(Math.random() * (i + 1));
+      const temp = board[i];
+      board[i] = board[randomIndex];
+      board[randomIndex] = temp;
     }
 
-    setPieces(shuffled);
-    setCompleted(false);
-    setMoves(0);
-    setSelectedPiece(null);
+    // Prevent the edge case where the board starts fully solved.
+    if (board.every((pieceId, index) => pieceId === index)) {
+      [board[0], board[1]] = [board[1], board[0]];
+    }
+
+    return board;
   };
 
-  const handlePieceClick = (clickedPosition: number) => {
-    if (completed) return;
+  const boardToPieces = (board: number[]) =>
+    board.map((pieceId, position) => ({
+      id: pieceId,
+      currentIndex: position,
+      correctIndex: pieceId,
+    }));
 
-    if (selectedPiece === null) {
-      setSelectedPiece(clickedPosition);
-    } else {
-      if (selectedPiece === clickedPosition) {
-        setSelectedPiece(null);
+  const piecesToBoard = (sourcePieces: PuzzlePiece[]) => {
+    const board = Array.from({ length: GRID_SIZE }, () => -1);
+    sourcePieces.forEach((piece) => {
+      board[piece.currentIndex] = piece.id;
+    });
+    return board;
+  };
+
+  const applyBoard = (board: number[], nextMoves: number, isCompleted: boolean) => {
+    if (board.length !== GRID_SIZE) {
+      return;
+    }
+
+    setPieces(boardToPieces(board));
+    setMoves(nextMoves);
+    setCompleted(isCompleted);
+    setSelectedPiece(null);
+    setHasSessionStarted(true);
+  };
+
+  const initializePuzzle = () => {
+    const board = createShuffledBoard();
+    applyBoard(board, 0, false);
+    setLastMoveHighlight(null);
+  };
+
+  const markPuzzleCompletedOnBackend = async (id: string) => {
+    try {
+      // BACKEND REQUIRED:
+      // Expected endpoint: POST /puzzle/updateIsLocked
+      // Request body: { id: number|string, isLocked: 0 }
+      await fetch(`${PUZZLE_API_BASE_URL}/updateIsLocked`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id,
+          isLocked: 0,
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to update puzzle isLocked to 0:", error);
+    }
+  };
+
+  useEffect(() => {
+    setPuzzleInfo({
+      imageUrl: routeState?.imageUrl ?? "",
+      title: routeState?.title ?? "Family Memory",
+      theme: routeState?.theme ?? "",
+    });
+  }, [puzzleId, routeState?.imageUrl, routeState?.title, routeState?.theme]);
+
+  useEffect(() => {
+    if (!syncEnabled) {
+      initializePuzzle();
+      return;
+    }
+
+    setPieces([]);
+    setMoves(0);
+    setCompleted(false);
+    setSelectedPiece(null);
+    setHasSessionStarted(false);
+    setLastMoveHighlight(null);
+  }, [puzzleId, syncEnabled]);
+
+  useEffect(() => {
+    if (!syncEnabled || !puzzleId) {
+      return;
+    }
+
+    const handleEvent = (event: PuzzleSyncEnvelope) => {
+      if (event.roomId !== roomId || event.puzzleId !== puzzleId) {
         return;
       }
 
-      // 执行交换逻辑
-      const newPieces = [...pieces];
-      const piece1 = newPieces.find(p => p.currentIndex === selectedPiece);
-      const piece2 = newPieces.find(p => p.currentIndex === clickedPosition);
+      if (event.eventType === "START") {
+        const payload = event.payload as PuzzleStartPayload;
+        const nextBoard = payload.board ?? [];
 
-      if (piece1 && piece2) {
-        const tempIndex = piece1.currentIndex;
-        piece1.currentIndex = piece2.currentIndex;
-        piece2.currentIndex = tempIndex;
+        if (payload.imageUrl || payload.title || payload.theme) {
+          setPuzzleInfo((previous) => ({
+            imageUrl: payload.imageUrl ?? previous.imageUrl,
+            title: payload.title ?? previous.title,
+            theme: payload.theme ?? previous.theme,
+          }));
+        }
+
+        applyBoard(nextBoard, 0, false);
       }
 
-      setPieces(newPieces);
-      setSelectedPiece(null);
-      setMoves(moves + 1);
+      if (event.eventType === "MOVE") {
+        const payload = event.payload as PuzzleMovePayload;
+        const nextBoard = payload.board ?? [];
+        const hasCompletedBoard = nextBoard.every((pieceId, index) => pieceId === index);
 
-      // 检查是否完成
-      const isComplete = newPieces.every(p => p.currentIndex === p.correctIndex);
-      if (isComplete) {
-        setCompleted(true);
-        // 保存解锁状态到本地（作为备份）
+        applyBoard(nextBoard, payload.moves ?? 0, hasCompletedBoard);
+        setLastMoveHighlight({
+          fromIndex: payload.fromIndex,
+          toIndex: payload.toIndex,
+          token: Date.now(),
+        });
+      }
+
+      if (event.eventType === "COMPLETE") {
+        const payload = event.payload as PuzzleCompletePayload;
+        applyBoard(payload.board ?? [], payload.moves ?? moves, true);
+      }
+    };
+
+    const client = new PuzzleSyncClient({
+      roomId,
+      puzzleId,
+      role,
+      onEvent: handleEvent,
+      onConnectionChange: (connected) => {
+        setSyncConnected(connected);
+        if (connected) {
+          setSyncError(null);
+          client.sendJoin();
+        }
+      },
+      // BACKEND REQUIRED: if broker/topic config is wrong, this message helps the UI display a useful hint.
+      onError: (message) => {
+        setSyncError(message);
+      },
+    });
+
+    syncClientRef.current = client;
+    client.connect();
+
+    return () => {
+      client.disconnect();
+      syncClientRef.current = null;
+      setSyncConnected(false);
+    };
+  }, [syncEnabled, puzzleId, roomId, role]);
+
+  const handleStartSynchronizedPuzzle = () => {
+    if (!syncEnabled || !puzzleId || role !== "grandson") {
+      return;
+    }
+
+    const board = createShuffledBoard();
+    applyBoard(board, 0, false);
+
+    // BACKEND REQUIRED: this message should be broadcast by Spring Boot to both roles in the room.
+    syncClientRef.current?.sendStart({
+      board,
+      imageUrl: puzzleInfo.imageUrl,
+      title: puzzleInfo.title,
+      theme: puzzleInfo.theme,
+    });
+  };
+
+  const handlePieceClick = (clickedPosition: number) => {
+    if (completed || !canOperatePuzzle || (syncEnabled && !hasSessionStarted)) {
+      return;
+    }
+
+    if (selectedPiece === null) {
+      setSelectedPiece(clickedPosition);
+      return;
+    }
+
+    if (selectedPiece === clickedPosition) {
+      setSelectedPiece(null);
+      return;
+    }
+
+    const newPieces = [...pieces];
+    const pieceA = newPieces.find((piece) => piece.currentIndex === selectedPiece);
+    const pieceB = newPieces.find((piece) => piece.currentIndex === clickedPosition);
+
+    if (!pieceA || !pieceB) {
+      setSelectedPiece(null);
+      return;
+    }
+
+    const tempIndex = pieceA.currentIndex;
+    pieceA.currentIndex = pieceB.currentIndex;
+    pieceB.currentIndex = tempIndex;
+
+    const nextMoves = moves + 1;
+    const nextCompleted = newPieces.every((piece) => piece.currentIndex === piece.correctIndex);
+    const nextBoard = piecesToBoard(newPieces);
+
+    setPieces(newPieces);
+    setSelectedPiece(null);
+    setMoves(nextMoves);
+    setCompleted(nextCompleted);
+    setLastMoveHighlight({
+      fromIndex: selectedPiece,
+      toIndex: clickedPosition,
+      token: Date.now(),
+    });
+
+    if (syncEnabled && role === "grandson") {
+      // BACKEND REQUIRED: relay move for spectator rendering on grandparent page.
+      syncClientRef.current?.sendMove({
+        board: nextBoard,
+        fromIndex: selectedPiece,
+        toIndex: clickedPosition,
+        moves: nextMoves,
+      });
+    }
+
+    if (nextCompleted && puzzleId) {
+      if (!isGrandparent) {
         const completedPuzzles = JSON.parse(localStorage.getItem("completed-puzzles") || "[]");
         if (!completedPuzzles.includes(puzzleId)) {
           completedPuzzles.push(puzzleId);
           localStorage.setItem("completed-puzzles", JSON.stringify(completedPuzzles));
         }
+
+        // Sync completion state to backend so PuzzleSelection can rely on isLocked from server.
+        void markPuzzleCompletedOnBackend(puzzleId);
+      }
+
+      if (syncEnabled && role === "grandson") {
+        // BACKEND REQUIRED: emit COMPLETE so the grandparent UI can show "listen together" prompt immediately.
+        syncClientRef.current?.sendComplete({
+          board: nextBoard,
+          moves: nextMoves,
+        });
       }
     }
   };
 
-  const getPieceAtPosition = (position: number) => {
-    return pieces.find(p => p.currentIndex === position);
-  };
+  const getPieceAtPosition = (position: number) => pieces.find((piece) => piece.currentIndex === position);
 
-  const correctPieces = pieces.filter(p => p.currentIndex === p.correctIndex).length;
-  const progress = Math.round((correctPieces / gridSize) * 100);
+  const correctPieces = pieces.filter((piece) => piece.currentIndex === piece.correctIndex).length;
+  const progress = Math.round((correctPieces / GRID_SIZE) * 100);
+
+  const waitingMessage = useMemo(() => {
+    if (!syncEnabled) {
+      return "";
+    }
+
+    if (!syncConnected) {
+      return "Connecting to live puzzle room...";
+    }
+
+    return role === "grandparents"
+      ? "Waiting for your grandchild to press Start Puzzle..."
+      : "Press Start Puzzle when your grandparent is ready.";
+  }, [syncConnected, syncEnabled, role]);
 
   return (
     <div className="h-full bg-gradient-to-b from-amber-50 via-orange-50 to-rose-50 overflow-y-auto">
       <div className="px-6 py-6">
-        {/* 返回按钮 */}
         <button
           onClick={() => navigate(`/puzzle-selection/${character}`)}
           className="flex items-center gap-2 text-amber-700 mb-4 hover:text-amber-900 bg-white/60 px-4 py-2 rounded-full backdrop-blur"
@@ -120,94 +363,150 @@ export function MemoryPuzzle() {
           <h1 className="text-3xl mb-1 text-amber-700">{puzzleInfo.title}</h1>
           <p className="text-sm text-gray-600 px-4">
             {isGrandparent
-              ? "Witness every step of your grandchild's growth"
-              : "Complete the puzzle to unlock a warm story"}
+              ? "Watch each move and cheer your grandchild on."
+              : "Complete the puzzle to unlock a warm story."}
           </p>
         </div>
 
-        {/* 游戏进度卡片 */}
-        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 mb-4 border-2 border-purple-200 shadow-md">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2 text-purple-600 font-bold">
-              <Target className="w-5 h-5" />
-              <span>{progress}% Finished</span>
+        {syncEnabled && (
+          <div className="bg-white/80 backdrop-blur rounded-2xl p-4 mb-4 border-2 border-orange-200 shadow-md">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-orange-700 font-semibold">
+                <Radio className="w-5 h-5" />
+                <span>{syncConnected ? "Live Sync Connected" : "Live Sync Disconnected"}</span>
+              </div>
+              <div className="text-xs text-gray-600">Room: {roomId}</div>
             </div>
-            <div className="flex items-center gap-1 text-gray-600 text-sm">
-              <Sparkles className="w-4 h-4 text-amber-500" />
-              Moves: {moves}
+            {syncError && <p className="text-xs text-red-600 mt-2">Sync error: {syncError}</p>}
+          </div>
+        )}
+
+        {syncEnabled && !hasSessionStarted && (
+          <div className="bg-gradient-to-br from-white to-amber-50 rounded-3xl shadow-xl p-6 mb-4 border-2 border-amber-200 text-center">
+            <Hourglass className="w-14 h-14 text-amber-500 mx-auto mb-3 animate-pulse" />
+            <h2 className="text-2xl text-amber-700 mb-2">Ready to Start Together</h2>
+            <p className="text-sm text-gray-700 mb-5">{waitingMessage}</p>
+
+            {role === "grandson" ? (
+              <button
+                onClick={handleStartSynchronizedPuzzle}
+                disabled={!syncConnected}
+                className="w-full bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500 text-white py-4 rounded-2xl font-bold shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                Start Puzzle
+              </button>
+            ) : (
+              <div className="bg-amber-100 border border-amber-300 rounded-2xl p-4 text-amber-900 text-sm">
+                Your grandchild will start the puzzle. You will automatically enter the same board.
+              </div>
+            )}
+          </div>
+        )}
+
+        {(hasSessionStarted || !syncEnabled) && (
+          <>
+            <div className="bg-white/80 backdrop-blur rounded-2xl p-4 mb-4 border-2 border-purple-200 shadow-md">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2 text-purple-600 font-bold">
+                  <Target className="w-5 h-5" />
+                  <span>{progress}% Finished</span>
+                </div>
+                <div className="flex items-center gap-1 text-gray-600 text-sm">
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  Moves: {moves}
+                </div>
+              </div>
+              <div className="w-full bg-purple-100 rounded-full h-3">
+                <div
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 h-3 rounded-full transition-all duration-500"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
             </div>
-          </div>
-          <div className="w-full bg-purple-100 rounded-full h-3">
-            <div
-              className="bg-gradient-to-r from-purple-500 to-pink-500 h-3 rounded-full transition-all duration-500"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
 
-        {/* 拼图核心网格 */}
-        <div className="bg-white rounded-3xl shadow-xl p-4 mb-4 border-2 border-orange-100">
-          <div className="grid grid-cols-3 gap-1.5 aspect-square">
-            {Array.from({ length: gridSize }, (_, i) => {
-              const piece = getPieceAtPosition(i);
-              const isSelected = selectedPiece === i;
-              const isCorrect = piece?.currentIndex === piece?.correctIndex;
+            {syncEnabled && isGrandparent && (
+              <div className="bg-amber-100 border border-amber-300 rounded-2xl p-3 mb-4 flex items-center gap-2 text-amber-900 text-sm">
+                <Eye className="w-4 h-4" />
+                Spectator mode: only your grandchild can move pieces.
+              </div>
+            )}
 
-              return (
+            <div className="bg-white rounded-3xl shadow-xl p-4 mb-4 border-2 border-orange-100">
+              <div className="grid grid-cols-3 gap-1.5 aspect-square">
+                {Array.from({ length: GRID_SIZE }, (_, index) => {
+                  const piece = getPieceAtPosition(index);
+                  const isSelected = selectedPiece === index;
+                  const isCorrect = piece?.currentIndex === piece?.correctIndex;
+                  const isMoveHighlighted =
+                    lastMoveHighlight &&
+                    (lastMoveHighlight.fromIndex === index || lastMoveHighlight.toIndex === index);
+
+                  return (
+                    <button
+                      key={`${index}-${lastMoveHighlight?.token ?? 0}`}
+                      onClick={() => handlePieceClick(index)}
+                      disabled={completed || !canOperatePuzzle}
+                      className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all duration-500 ${
+                        isSelected
+                          ? "border-purple-500 scale-95 shadow-inner z-10"
+                          : isMoveHighlighted
+                            ? "border-amber-400 ring-4 ring-amber-300/80 scale-105 z-20"
+                            : isCorrect && !completed
+                              ? "border-green-300"
+                              : "border-transparent shadow-sm"
+                      }`}
+                    >
+                      {piece && (
+                        <div
+                          className="w-full h-full bg-no-repeat"
+                          style={{
+                            backgroundImage: `url(${puzzleInfo.imageUrl})`,
+                            backgroundPosition: `${(piece.correctIndex % 3) * 50}% ${
+                              Math.floor(piece.correctIndex / 3) * 50
+                            }%`,
+                            backgroundSize: "300% 300%",
+                          }}
+                        />
+                      )}
+
+                      {isSelected && <div className="absolute inset-0 bg-purple-500/20" />}
+                      {isMoveHighlighted && <div className="absolute inset-0 bg-amber-400/25 animate-pulse" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {completed ? (
+              <div className="bg-gradient-to-br from-white to-yellow-50 rounded-3xl shadow-xl p-6 text-center border-2 border-yellow-300 animate-in zoom-in duration-300">
+                <Trophy className="w-16 h-16 text-yellow-500 mx-auto mb-2" />
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                  {syncEnabled && isGrandparent ? "Puzzle Completed Together!" : "Memory Unlocked!"}
+                </h2>
+                <p className="text-sm text-gray-600 mb-4">
+                  {syncEnabled && isGrandparent
+                    ? "You can now listen to the story together with your grandchild."
+                    : "Great job! You can now continue to the story."}
+                </p>
                 <button
-                  key={i}
-                  onClick={() => handlePieceClick(i)}
-                  disabled={completed}
-                  className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
-                    isSelected
-                      ? "border-purple-500 scale-95 shadow-inner z-10"
-                      : isCorrect && !completed
-                      ? "border-green-300"
-                      : "border-transparent shadow-sm"
-                  }`}
+                  onClick={() => navigate(`/story/${character}/${puzzleId}`)}
+                  className="w-full bg-gradient-to-r from-orange-400 to-pink-500 text-white py-4 rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2"
                 >
-                  {piece && (
-                    <div
-                      className="w-full h-full bg-no-repeat"
-                      style={{
-                        backgroundImage: `url(${puzzleInfo.imageUrl})`,
-                        // 3x3 对应 0%, 50%, 100% 的背景位置
-                        backgroundPosition: `${(piece.correctIndex % 3) * 50}% ${
-                          Math.floor(piece.correctIndex / 3) * 50
-                        }%`,
-                        backgroundSize: "300% 300%",
-                      }}
-                    />
-                  )}
-                  {/* 选中时的微光效果 */}
-                  {isSelected && <div className="absolute inset-0 bg-purple-500/20" />}
+                  <PlayCircle className="w-6 h-6" />
+                  {syncEnabled && isGrandparent ? "Listen Together" : "Listen to Story"}
                 </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* 完成状态显示 */}
-        {completed ? (
-          <div className="bg-gradient-to-br from-white to-yellow-50 rounded-3xl shadow-xl p-6 text-center border-2 border-yellow-300 animate-in zoom-in duration-300">
-            <Trophy className="w-16 h-16 text-yellow-500 mx-auto mb-2" />
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Memory Unlocked!</h2>
-            <button
-              onClick={() => navigate(`/story/${character}/${puzzleId}`)}
-              className="w-full bg-gradient-to-r from-orange-400 to-pink-500 text-white py-4 rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2"
-            >
-              <PlayCircle className="w-6 h-6" />
-              Listen to Story
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={initializePuzzle}
-            className="w-full bg-white text-amber-700 py-4 rounded-2xl shadow-md border-2 border-orange-100 flex items-center justify-center gap-2 active:scale-95 transition-transform"
-          >
-            <Shuffle className="w-5 h-5" />
-            Shuffle Pieces
-          </button>
+              </div>
+            ) : (
+              <button
+                onClick={initializePuzzle}
+                disabled={syncEnabled}
+                className="w-full bg-white text-amber-700 py-4 rounded-2xl shadow-md border-2 border-orange-100 flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Shuffle className="w-5 h-5" />
+                {syncEnabled ? "Shuffle disabled during live sync" : "Shuffle Pieces"}
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>
