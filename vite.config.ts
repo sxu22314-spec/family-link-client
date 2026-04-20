@@ -17,6 +17,7 @@ function figmaAssetResolver() {
 }
 
 export default defineConfig({
+  
   plugins: [
     figmaAssetResolver(),
     // The React and Tailwind plugins are both required for Make, even if
@@ -34,6 +35,10 @@ export default defineConfig({
   define: {
     'process.env': {},
     global: 'window', // 这一行是关键
+  },
+  server: {
+    host: '0.0.0.0', // 监听所有网卡
+    port: 5173
   },
   
 
