@@ -13,6 +13,7 @@ import { TaskCompletion } from "./components/TaskCompletion";
 import { StoryPlayer } from "./components/StoryPlayer";
 import { HistoryGame } from "./components/HistoryGame";
 import { FamilyMoments } from "./components/FamilyMoments";
+import { FamilyMomentStoryUpload } from "./components/FamilyMomentStoryUpload";
 
 export const router = createHashRouter([
   {
@@ -34,6 +35,10 @@ export const router = createHashRouter([
   {
     path: "/family-moments",
     Component: FamilyMoments,
+  },
+  {
+    path: "/family-moments/story-upload",
+    Component: FamilyMomentStoryUpload,
   },
   {
     path: "/dashboard/grandson",

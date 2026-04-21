@@ -439,7 +439,8 @@ export async function uploadFamilyPhoto(
   file: File,
   title: string,
   subject: string,
-  shotDate?: string
+  shotDate?: string,
+  puzzleFlag?: 1
 ): Promise<FamilyPhoto> {
   try {
     const formData = new FormData();
@@ -447,6 +448,7 @@ export async function uploadFamilyPhoto(
     formData.append("title", title);
     formData.append("theme", subject);
     if (shotDate) formData.append("photoDate", shotDate);
+    if (puzzleFlag === 1) formData.append("type", "1");
 
     const response = await fetch(`${FAMILY_MOMENTS_API_BASE_URL}/upload`, {
       method: "POST",

@@ -48,6 +48,7 @@ interface UploadFormData {
   shotDate: string;
   subject: string;
   file: File | null;
+  puzzleOption: "" | "yes" | "no";
 }
 
 export function FamilyMoments() {
@@ -72,6 +73,7 @@ export function FamilyMoments() {
     shotDate: "",
     subject: "",
     file: null,
+    puzzleOption: "",
   });
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -154,20 +156,26 @@ export function FamilyMoments() {
         uploadForm.file,
         uploadForm.title,
         uploadForm.subject,
-        uploadForm.shotDate || undefined
+        uploadForm.shotDate || undefined,
+        uploadForm.puzzleOption === "yes" ? 1 : undefined
       );
 
       // Reset form and reload photos
+      const shouldOpenStoryUpload = uploadForm.puzzleOption === "yes";
       setUploadForm({
         title: "",
         shotDate: "",
         subject: "",
         file: null,
+        puzzleOption: "",
       });
       setPreviewUrl(null);
       setUploadDialogOpen(false);
       setCurrentPage(1); // Go back to first page
       await loadPhotos();
+      if (shouldOpenStoryUpload) {
+        navigate("/family-moments/story-upload");
+      }
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : "Failed to upload photo");
     } finally {
@@ -492,6 +500,27 @@ export function FamilyMoments() {
                         {theme.label}
                       </SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Puzzle Option - Optional */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Use this photo as a puzzle? <span className="text-gray-400">(Optional)</span>
+                </label>
+                <Select
+                  value={uploadForm.puzzleOption}
+                  onValueChange={(value: "" | "yes" | "no") =>
+                    setUploadForm((prev) => ({ ...prev, puzzleOption: value }))
+                  }
+                >
+                  <SelectTrigger className="border-2 border-orange-200">
+                    <SelectValue placeholder="Not selected" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="yes">Yes</SelectItem>
+                    <SelectItem value="no">No</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
