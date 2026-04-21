@@ -1,51 +1,8 @@
 import { useNavigate } from "react-router";
-import { Puzzle, ArrowLeft, Book, Heart, Star, Lightbulb, Clock, Image } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
-
-const FAMILY_MOMENTS_KEY = "family-moment-photos";
+import { Puzzle, ArrowLeft, Book, Star, Lightbulb, Clock, Image } from "lucide-react";
 
 export function GrandparentsCenter() {
   const navigate = useNavigate();
-  const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const stored = localStorage.getItem(FAMILY_MOMENTS_KEY);
-    if (stored) {
-      try {
-        setUploadedPhotos(JSON.parse(stored));
-      } catch {
-        setUploadedPhotos([]);
-      }
-    }
-  }, []);
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      for (let i = 0; i < files.length; i++) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          if (event.target?.result) {
-            setUploadedPhotos((prev) => {
-              const next = [...prev, event.target.result as string];
-              localStorage.setItem(FAMILY_MOMENTS_KEY, JSON.stringify(next));
-              return next;
-            });
-          }
-        };
-        reader.readAsDataURL(files[i]);
-      }
-    }
-  };
-
-  const handleRemovePhoto = (index: number) => {
-    setUploadedPhotos((prev) => {
-      const next = prev.filter((_, i) => i !== index);
-      localStorage.setItem(FAMILY_MOMENTS_KEY, JSON.stringify(next));
-      return next;
-    });
-  };
 
   return (
     <div className="h-full bg-gradient-to-b from-amber-50 via-orange-50 to-rose-50 overflow-y-auto">
@@ -79,7 +36,7 @@ export function GrandparentsCenter() {
         </div>
 
         <div className="space-y-4">
-          {/* Family Moments - Photo Upload Card */}
+          {/* Family Moments - Photo Gallery Card */}
           <div className="bg-gradient-to-br from-white to-rose-50 rounded-3xl shadow-lg p-6 border-2 border-rose-200">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-14 h-14 rounded-full bg-gradient-to-br from-red-400 via-rose-400 to-orange-500 flex items-center justify-center shadow-md">
@@ -94,61 +51,15 @@ export function GrandparentsCenter() {
 
             <div className="bg-rose-50 rounded-xl p-3 mb-4 border border-rose-100">
               <p className="text-sm text-gray-700 leading-relaxed">
-                Share family photos and precious moments, letting your grandchild learn about family history and warmth.
+                Share family photos and precious moments, letting your grandchild learn about family history and warmth. View, organize and upload photos from anywhere.
               </p>
             </div>
 
-            {/* Upload Box */}
-            <div className="mb-4">
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full border-2 border-dashed border-rose-300 rounded-2xl p-6 bg-rose-50/50 hover:bg-rose-100 transition-colors"
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <Image className="w-8 h-8 text-rose-400" />
-                  <p className="text-sm text-gray-700 font-medium">Tap to upload photos</p>
-                </div>
-              </button>
-            </div>
-
-            {/* Display uploaded photos */}
-            {uploadedPhotos.length > 0 && (
-              <div className="mb-4">
-                <p className="text-xs text-gray-600 mb-2">Uploaded ({uploadedPhotos.length}):</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {uploadedPhotos.map((photo, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={photo}
-                        alt={`Uploaded ${index + 1}`}
-                        className="w-full h-20 rounded-lg object-cover border border-rose-200"
-                      />
-                      <button
-                        onClick={() => handleRemovePhoto(index)}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                      >
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => navigate("/family-moments")}
               className="w-full bg-gradient-to-r from-red-500 via-rose-500 to-orange-500 text-white py-4 rounded-2xl hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-95 text-base font-medium"
             >
-              {uploadedPhotos.length > 0 
-                ? `View & Share Moments (${uploadedPhotos.length}) →` 
-                : "Start Sharing Photos"}
+              Enter Family Moments →
             </button>
           </div>
 

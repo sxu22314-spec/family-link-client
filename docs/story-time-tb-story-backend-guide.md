@@ -88,7 +88,7 @@ server:
 
 spring:
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/family_link?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://192.168.1.104:3306/family_link?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: root
     password: your_password
     driver-class-name: com.mysql.cj.jdbc.Driver

@@ -321,3 +321,129 @@ function getMockStories(): Story[] {
     },
   ];
 }
+
+// ============================================================================
+// FAMILY MOMENTS API - MySQL Database Operations
+// ============================================================================
+
+export interface FamilyPhoto {
+  id: string;
+  photoUrl: string;
+  title: string;
+  subject: string;
+  uploadedAt: string;
+  shotDate?: string;
+}
+
+export interface FamilyPhotoFilter {
+  subject?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+const FAMILY_MOMENTS_API_BASE_URL = "http://192.168.1.104:8080/family-moment";
+
+/**
+ * Fetch family photos from MySQL database
+ *
+ * Backend Implementation Guide:
+ * - Endpoint: GET /family-moment/photos
+ * - Query params: subject, dateFrom, dateTo, page, pageSize
+ * - Returns: { code: 0, data: { photos: Array<FamilyPhoto>, total: number, page: number, pageSize: number } }
+ * - Database: SELECT * FROM family_photos WHERE (subject = ? OR ?) AND (shot_date BETWEEN ? AND ?) ORDER BY uploaded_at DESC LIMIT ? OFFSET ?
+ */
+export async function fetchFamilyPhotos(filters: FamilyPhotoFilter): Promise<{ photos: FamilyPhoto[]; total: number; page: number; pageSize: number }> {
+  try {
+    const params = new URLSearchParams();
+    if (filters.subject) params.append("theme", filters.subject);
+    if (filters.dateFrom) params.append("dateFrom", filters.dateFrom);
+    if (filters.dateTo) params.append("dateTo", filters.dateTo);
+    params.append("page", String(filters.page ?? 1));
+    params.append("pageSize", String(filters.pageSize ?? 4));
+
+    const response = await fetch(`${FAMILY_MOMENTS_API_BASE_URL}/photos?${params.toString()}`);
+    const result = await response.json();
+
+    if (result?.code !== 0) {
+      throw new Error(result?.message || "Failed to fetch family photos");
+    }
+
+    return result.data || { photos: [], total: 0, page: 1, pageSize: 4 };
+  } catch (error) {
+    console.error("Error fetching family photos:", error);
+    throw error;
+  }
+}
+
+/**
+ * Upload family photo to MinIO and save metadata to MySQL
+ *
+ * Backend Implementation Guide:
+ * - Endpoint: POST /family-moment/upload
+ * - Body: FormData with photo file and metadata (title, subject, shotDate)
+ * - Process:
+ *   1. Receive FormData with file and metadata
+ *   2. Upload photo to MinIO with path: family-link/photo/{uuid}{ext}
+ *   3. Save metadata to MySQL: INSERT INTO family_photos (title, subject, shot_date, photo_url, uploaded_at, grandparent_id)
+ *   4. Return photo object with ID and photoUrl
+ * - Returns: { code: 0, data: FamilyPhoto }
+ */
+export async function uploadFamilyPhoto(
+  file: File,
+  title: string,
+  subject: string,
+  shotDate?: string
+): Promise<FamilyPhoto> {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("title", title);
+    formData.append("theme", subject);
+    if (shotDate) formData.append("photoDate", shotDate);
+
+    const response = await fetch(`${FAMILY_MOMENTS_API_BASE_URL}/upload`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await response.json();
+
+    if (result?.code !== 0) {
+      throw new Error(result?.message || "Failed to upload family photo");
+    }
+
+    return result.data;
+  } catch (error) {
+    console.error("Error uploading family photo:", error);
+    throw error;
+  }
+}
+
+/**
+ * Delete family photo
+ *
+ * Backend Implementation Guide:
+ * - Endpoint: DELETE /family-moment/photos/:id
+ * - Process:
+ *   1. Delete record from MySQL
+ *   2. Delete file from MinIO
+ * - Returns: { code: 0 }
+ */
+export async function deleteFamilyPhoto(photoId: string): Promise<void> {
+  try {
+    const response = await fetch(`${FAMILY_MOMENTS_API_BASE_URL}/photos/${photoId}`, {
+      method: "DELETE",
+    });
+
+    const result = await response.json();
+
+    if (result?.code !== 0) {
+      throw new Error(result?.message || "Failed to delete family photo");
+    }
+  } catch (error) {
+    console.error("Error deleting family photo:", error);
+    throw error;
+  }
+}
