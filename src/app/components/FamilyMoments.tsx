@@ -33,12 +33,12 @@ import {
 } from "../../services/api";
 
 const PHOTO_THEMES = [
-  { label: "生活日常", value: "daily-life" },
-  { label: "节日庆祝", value: "holiday" },
-  { label: "家庭聚会", value: "family-gathering" },
-  { label: "旅游记录", value: "travel" },
-  { label: "运动活动", value: "sports" },
-  { label: "美食时光", value: "food" },
+  { label: "Daily Life", value: "daily-life" },
+  { label: "holiday", value: "holiday" },
+  { label: "family-gathering", value: "family-gathering" },
+  { label: "travel", value: "travel" },
+  { label: "sports", value: "sports" },
+  { label: "food", value: "food" },
 ];
 
 const PHOTOS_PER_PAGE = 4;
@@ -257,7 +257,7 @@ export function FamilyMoments() {
               onClick={handleClearFilters}
               className="text-sm text-orange-600 hover:text-orange-700 underline mt-2"
             >
-              清除筛选
+              clear fillter
             </button>
           )}
         </div>
