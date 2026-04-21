@@ -343,7 +343,43 @@ export interface FamilyPhotoFilter {
   pageSize?: number;
 }
 
+export interface FamilyPhotoListResponse {
+  photos: FamilyPhoto[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 const FAMILY_MOMENTS_API_BASE_URL = "http://192.168.1.104:8080/family-moment";
+
+function toPositiveInt(value: unknown, fallback: number): number {
+  const num = Number(value);
+  return Number.isFinite(num) && num > 0 ? Math.floor(num) : fallback;
+}
+
+function normalizeFamilyPhotoListResponse(raw: any, filters: FamilyPhotoFilter): FamilyPhotoListResponse {
+  const data = raw?.data ?? raw ?? {};
+  const photos = Array.isArray(data?.photos)
+    ? data.photos
+    : Array.isArray(data?.records)
+      ? data.records
+      : Array.isArray(data?.list)
+        ? data.list
+        : Array.isArray(data?.items)
+          ? data.items
+          : [];
+
+  const fallbackPage = toPositiveInt(filters.page, 1);
+  const fallbackPageSize = toPositiveInt(filters.pageSize, 4);
+  const page = toPositiveInt(data?.page ?? data?.pageNum ?? data?.pageNo, fallbackPage);
+  const pageSize = toPositiveInt(data?.pageSize ?? data?.size ?? data?.limit, fallbackPageSize);
+  const total = toPositiveInt(
+    data?.total ?? data?.totalCount ?? data?.count ?? (page === 1 && photos.length < pageSize ? photos.length : 0),
+    0
+  );
+
+  return { photos, total, page, pageSize };
+}
 
 /**
  * Fetch family photos from MySQL database
@@ -354,14 +390,23 @@ const FAMILY_MOMENTS_API_BASE_URL = "http://192.168.1.104:8080/family-moment";
  * - Returns: { code: 0, data: { photos: Array<FamilyPhoto>, total: number, page: number, pageSize: number } }
  * - Database: SELECT * FROM family_photos WHERE (subject = ? OR ?) AND (shot_date BETWEEN ? AND ?) ORDER BY uploaded_at DESC LIMIT ? OFFSET ?
  */
-export async function fetchFamilyPhotos(filters: FamilyPhotoFilter): Promise<{ photos: FamilyPhoto[]; total: number; page: number; pageSize: number }> {
+export async function fetchFamilyPhotos(filters: FamilyPhotoFilter): Promise<FamilyPhotoListResponse> {
   try {
     const params = new URLSearchParams();
     if (filters.subject) params.append("theme", filters.subject);
     if (filters.dateFrom) params.append("dateFrom", filters.dateFrom);
     if (filters.dateTo) params.append("dateTo", filters.dateTo);
-    params.append("page", String(filters.page ?? 1));
-    params.append("pageSize", String(filters.pageSize ?? 4));
+
+    const page = toPositiveInt(filters.page, 1);
+    const pageSize = toPositiveInt(filters.pageSize, 4);
+
+    // Keep current contract while adding common aliases for backend compatibility
+    params.append("page", String(page));
+    params.append("pageNum", String(page));
+    params.append("pageNo", String(page));
+    params.append("pageSize", String(pageSize));
+    params.append("size", String(pageSize));
+    params.append("limit", String(pageSize));
 
     const response = await fetch(`${FAMILY_MOMENTS_API_BASE_URL}/photos?${params.toString()}`);
     const result = await response.json();
@@ -370,7 +415,7 @@ export async function fetchFamilyPhotos(filters: FamilyPhotoFilter): Promise<{ p
       throw new Error(result?.message || "Failed to fetch family photos");
     }
 
-    return result.data || { photos: [], total: 0, page: 1, pageSize: 4 };
+    return normalizeFamilyPhotoListResponse(result, filters);
   } catch (error) {
     console.error("Error fetching family photos:", error);
     throw error;

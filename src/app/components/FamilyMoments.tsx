@@ -200,7 +200,15 @@ export function FamilyMoments() {
     setCurrentPage(1);
   };
 
-  const totalPages = Math.ceil(totalPhotos / PHOTOS_PER_PAGE);
+  const handleSubjectChange = (value: string) => {
+    setSelectedSubject(value);
+    setCurrentPage(1);
+  };
+
+  const totalPages = totalPhotos > 0 ? Math.ceil(totalPhotos / PHOTOS_PER_PAGE) : 0;
+  const canGoPrev = currentPage > 1;
+  const canGoNext = totalPages > 0 ? currentPage < totalPages : photos.length === PHOTOS_PER_PAGE;
+  const showPagination = totalPages > 1 || currentPage > 1 || (totalPages === 0 && photos.length === PHOTOS_PER_PAGE);
 
   return (
     <div className="h-full bg-gradient-to-b from-amber-50 via-orange-50 to-rose-50 overflow-y-auto">
@@ -237,7 +245,7 @@ export function FamilyMoments() {
         {/* Subject Filter Only */}
         <div className="bg-white rounded-2xl border-2 border-orange-200 p-4 mb-6">
           <div className="grid grid-cols-1">
-            <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+            <Select value={selectedSubject} onValueChange={handleSubjectChange}>
               <SelectTrigger className="border-2 border-orange-200">
                 <Tag className="w-4 h-4 mr-2" />
                 <SelectValue placeholder="All Themes" />
@@ -337,12 +345,12 @@ export function FamilyMoments() {
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
+            {showPagination && (
               <div className="flex flex-col items-center gap-2 mb-6">
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
+                    disabled={!canGoPrev}
                     className="p-2 rounded-lg bg-white border-2 border-orange-200 hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     <ChevronLeft className="w-5 h-5 text-orange-600" />
@@ -351,28 +359,30 @@ export function FamilyMoments() {
                   <input
                     type="number"
                     min={1}
-                    max={totalPages}
+                    max={totalPages > 0 ? totalPages : undefined}
                     value={currentPage}
                     onChange={(e) => {
                       let val = Number(e.target.value);
                       if (isNaN(val) || val < 1) val = 1;
-                      if (val > totalPages) val = totalPages;
+                      if (totalPages > 0 && val > totalPages) val = totalPages;
                       setCurrentPage(val);
                     }}
                     className="w-16 text-center border-2 border-orange-200 rounded-lg px-2 py-1 text-gray-700 focus:outline-none focus:border-orange-400"
                   />
 
-                  <span className="text-gray-700">/ {totalPages}</span>
+                  {totalPages > 0 && <span className="text-gray-700">/ {totalPages}</span>}
 
                   <button
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage((p) => p + 1)}
+                    disabled={!canGoNext}
                     className="p-2 rounded-lg bg-white border-2 border-orange-200 hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     <ChevronRight className="w-5 h-5 text-orange-600" />
                   </button>
                 </div>
-                <div className="text-xs text-gray-500">共 {totalPhotos} 张照片</div>
+                <div className="text-xs text-gray-500">
+                  {totalPhotos > 0 ? `Photo numbers： ${totalPhotos} ` : "Unknown photos, loading..."}
+                </div>
               </div>
             )}
           </>
