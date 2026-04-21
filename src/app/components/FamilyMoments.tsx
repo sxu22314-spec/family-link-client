@@ -55,6 +55,20 @@ export function FamilyMoments() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const getCenterPathByCurrentUser = (): string => {
+    try {
+      const raw = localStorage.getItem("currentUser");
+      if (!raw) return "/grandparents-center";
+      const user = JSON.parse(raw) as { id?: number | string };
+      const userId = Number(user?.id);
+      if (userId === 1) return "/dashboard/grandson";
+      if (userId === 2) return "/dashboard/grandparents";
+    } catch {
+      // Keep existing fallback behavior when localStorage payload is invalid.
+    }
+    return "/grandparents-center";
+  };
+
   // State for photos display
   const [photos, setPhotos] = useState<FamilyPhoto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -223,11 +237,11 @@ export function FamilyMoments() {
       <div className="px-6 py-6">
         {/* Back Button */}
         <button
-          onClick={() => navigate("/grandparents-center")}
+          onClick={() => navigate(getCenterPathByCurrentUser())}
           className="flex items-center gap-2 text-amber-700 mb-4 hover:text-amber-900 bg-white/60 px-4 py-2 rounded-full backdrop-blur"
         >
           <ArrowLeft className="w-5 h-5" />
-          <span>Back to Grandparents Center</span>
+          <span>Back to Center</span>
         </button>
 
         {/* Header */}

@@ -51,6 +51,37 @@ export function GrandchildCenter() {
         </div>
 
         <div className="space-y-4">
+          {/* Family Moments Card */}
+          <div className="bg-gradient-to-br from-white to-rose-50 rounded-3xl shadow-lg p-6 border-2 border-rose-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-400 via-rose-400 to-orange-500 flex items-center justify-center shadow-md">
+                <Image className="w-7 h-7 text-white" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl text-gray-800 mb-0.5">Family Moments</h2>
+                <p className="text-sm text-rose-600">Grandparents' Photos</p>
+              </div>
+              <div className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">Live View</div>
+            </div>
+
+            <div className="bg-rose-50 rounded-xl p-3 mb-4 border border-rose-100">
+              <p className="text-sm text-gray-700 leading-relaxed mb-2">
+                Peek at the warm photos your grandparents shared. These little moments help you feel closer and learn about family stories.
+              </p>
+              <div className="flex items-center gap-2 text-xs text-rose-700">
+                <Clock className="w-3.5 h-3.5" />
+                <span>Photos are synced from grandparents' Family Moments</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => navigate("/family-moments")}
+              className="w-full bg-gradient-to-r from-red-500 via-rose-500 to-orange-500 text-white py-4 rounded-2xl hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-95 text-base font-medium"
+            >
+              Enter Family Moments →
+            </button>
+          </div>
+
           {/* Memory Puzzle Card */}
           <div className="bg-gradient-to-br from-white to-purple-50 rounded-3xl shadow-lg p-6 border-2 border-purple-200">
             <div className="flex items-center gap-3 mb-4">
@@ -111,45 +142,6 @@ export function GrandchildCenter() {
             >
               Explore Story Library →
             </button>
-          </div>
-
-          {/* Family Moments Card */}
-          <div className="bg-gradient-to-br from-white to-rose-50 rounded-3xl shadow-lg p-6 border-2 border-rose-200">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-400 via-rose-400 to-orange-500 flex items-center justify-center shadow-md">
-                <Image className="w-7 h-7 text-white" />
-              </div>
-              <div className="flex-1">
-                <h2 className="text-xl text-gray-800 mb-0.5">Family Moments</h2>
-                <p className="text-sm text-rose-600">Grandparents' Photos</p>
-              </div>
-              <div className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">Live View</div>
-            </div>
-
-            <div className="bg-rose-50 rounded-xl p-3 mb-4 border border-rose-100">
-              <p className="text-sm text-gray-700 leading-relaxed mb-2">
-                Peek at the warm photos your grandparents shared. These little moments help you feel closer and learn about family stories.
-              </p>
-              <div className="flex items-center gap-2 text-xs text-rose-700">
-                <Clock className="w-3.5 h-3.5" />
-                <span>Photos are synced from grandparents' Family Moments</span>
-              </div>
-            </div>
-
-            {familyPhotos.length > 0 ? (
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                {familyPhotos.map((photo, index) => (
-                  <div key={index} className="overflow-hidden rounded-3xl border border-rose-200 shadow-sm bg-white">
-                    <img src={photo} alt={`Family moment ${index + 1}`} className="w-full h-32 object-cover" />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-3xl bg-white p-5 border border-dashed border-rose-200 text-center">
-                <p className="text-sm text-gray-600 mb-2">Your grandparents haven&apos;t uploaded family photos yet.</p>
-                <p className="text-xs text-rose-500">Come back soon to see the warm moments they share.</p>
-              </div>
-            )}
           </div>
 
           {/* History Game Card */}
