@@ -15,22 +15,22 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose,
-} from "./ui/dialog";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
+} from "../ui/dialog";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/select";
+} from "../ui/select";
 import {
   fetchFamilyPhotos,
   uploadFamilyPhoto,
   deleteFamilyPhoto,
   FamilyPhoto,
-} from "../../services/api";
+} from "../../../services/api";
 
 const PHOTO_THEMES = [
   { label: "Daily Life", value: "daily-life" },
@@ -148,7 +148,7 @@ export function FamilyMoments() {
   const handleUploadSubmit = async () => {
     // Validation
     if (!uploadForm.title.trim()) {
-      setUploadError("请输入照片标题 (Title is required)");
+      setUploadError("请输入照片标�?(Title is required)");
       return;
     }
 
@@ -403,7 +403,7 @@ export function FamilyMoments() {
                   </button>
                 </div>
                 <div className="text-xs text-gray-500">
-                  {totalPhotos > 0 ? `Photo numbers： ${totalPhotos} ` : "Unknown photos, loading..."}
+                  {totalPhotos > 0 ? `Photo number: ${totalPhotos} ` : "Unknown photos, loading..."}
                 </div>
               </div>
             )}

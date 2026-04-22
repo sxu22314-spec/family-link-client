@@ -20,7 +20,8 @@ import {
   PuzzleHelpRequestPayload,
   PuzzleHelpAcceptPayload,
   PuzzleRole,
-} from "../../services/puzzleSyncClient";
+} from "../../../services/puzzleSyncClient";
+import { PUZZLE_API_BASE_URL } from "../../../services/api";
 
 interface PuzzlePiece {
   id: number;
@@ -43,7 +44,6 @@ interface MoveHighlight {
 }
 
 const GRID_SIZE = 9;
-const PUZZLE_API_BASE_URL = import.meta.env.VITE_PUZZLE_API_BASE_URL || "http://192.168.1.104:8080/puzzle";
 
 export function MemoryPuzzle() {
   const navigate = useNavigate();

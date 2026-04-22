@@ -11,8 +11,8 @@ import {
   Edit,
   Play,
 } from "lucide-react";
-import { Story } from "../../types/story";
-import { fetchStories, deleteStory } from "../../services/api";
+import { Story } from "../../../types/story";
+import { fetchStories, deleteStory } from "../../../services/api";
 
 export function StoryLibraryGrandparent() {
   const navigate = useNavigate();

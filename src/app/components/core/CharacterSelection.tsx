@@ -1,9 +1,9 @@
 import { useNavigate } from "react-router";
 import { Users, Baby, Heart, Sparkles, ArrowLeft } from "lucide-react";
-import { ImageWithFallback } from "./figma/ImageWithFallback";
-import elderlyImage from "../../assets/elderly.png";
-import childrenImage from "../../assets/children.png"; 
-import { selectRole } from "../../services/api/userApi";
+import { ImageWithFallback } from "../figma/ImageWithFallback";
+import elderlyImage from "../../../assets/elderly.png";
+import childrenImage from "../../../assets/children.png"; 
+import { selectRole } from "../../../services/api";
 
 export function CharacterSelection() {
   const navigate = useNavigate();
@@ -12,14 +12,14 @@ export function CharacterSelection() {
   // 2. 核心处理逻辑
   // ============================================================================
   const handleCharacterSelect = async (character: "grandparents" | "grandson") => {
-    // 映射前端角色到后端 ID
+    // 映射前端角色到后�?ID
     const roleId = character === "grandparents" ? 2 : 1;
 
     // 调用 API 获取数据
     const userInfo = await selectRole(roleId);
 
     if (userInfo) {
-      // 将用户信息保存到本地，供后续 Dashboard 或上传功能使用
+      // 将用户信息保存到本地，供后续 Dashboard 或上传功能使�?
       localStorage.setItem("currentUser", JSON.stringify(userInfo));
       
       // 跳转到对应的 Dashboard
@@ -83,7 +83,7 @@ export function CharacterSelection() {
             </div>
             <div className="bg-orange-50 rounded-xl p-3 border border-orange-200">
               <p className="text-sm text-gray-700 leading-relaxed text-left">
-                <span className="text-amber-700 font-bold">✨ You can:</span> Record stories, upload photos, and share memories.
+                <span className="text-amber-700 font-bold">You can:</span> Record stories, upload photos, and share memories.
               </p>
             </div>
           </button>
@@ -107,7 +107,7 @@ export function CharacterSelection() {
             </div>
             <div className="bg-sky-50 rounded-xl p-3 border border-sky-200">
               <p className="text-sm text-gray-700 leading-relaxed text-left">
-                <span className="text-teal-700 font-bold">✨ You can:</span> Play puzzles, listen to stories, and feel the love.
+                <span className="text-teal-700 font-bold">You can:</span> Play puzzles, listen to stories, and feel the love.
               </p>
             </div>
           </button>

@@ -13,7 +13,8 @@ import {
   BookOpen,
   Star,
 } from "lucide-react";
-import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { ImageWithFallback } from "../figma/ImageWithFallback";
+import { STORY_API_BASE_URL } from "../../../services/api";
 
 interface StoryDetail {
   id: string;
@@ -27,7 +28,6 @@ interface StoryDetail {
   durationSeconds: number;
 }
 
-const STORY_API_BASE_URL = import.meta.env.VITE_STORY_API_BASE_URL || "http://192.168.1.104:8080/story";
 const DEFAULT_STORY_IMAGE =
   "https://images.unsplash.com/photo-1758874961197-893028499f9f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwzfHxncmFuZHBhcmVudCUyMHJlYWRpbmclMjBzdG9yeSUyMGNoaWxkJTIwd2FybXxlbnwxfHx8fDE3NzYwNjg5ODN8MA&ixlib=rb-4.1.0&q=80&w=1080";
 const DEFAULT_DURATION_SECONDS = 180;

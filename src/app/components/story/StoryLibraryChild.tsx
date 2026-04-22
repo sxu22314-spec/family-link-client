@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, Book, Lock, Unlock, Play, Star, CheckCircle } from "lucide-react";
-import { Story } from "../../types/story";
-import { fetchStories } from "../../services/api";
+import { Story } from "../../../types/story";
+import { fetchStories } from "../../../services/api";
 
 export function StoryLibraryChild() {
   const navigate = useNavigate();
@@ -162,7 +162,7 @@ function StoryCard({
 }) {
   const taskLabels: Record<string, string> = {
     drawing: "🎨 Drawing",
-    question: "❓ Question",
+    question: "�?Question",
     "memory-match": "🎮 Memory Match",
     "photo-upload": "📸 Photo",
   };

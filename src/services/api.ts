@@ -20,6 +20,37 @@ const API_CONFIG = {
   minioBucket: process.env.REACT_APP_MINIO_BUCKET || "family-stories",
 };
 
+// Unified backend URL configuration (Vite)
+const BACKEND_BASE_URL = import.meta.env.VITE_BACKEND_BASE_URL || "http://192.168.1.104:8080";
+
+export const STORY_API_BASE_URL =
+  import.meta.env.VITE_STORY_API_BASE_URL || `${BACKEND_BASE_URL}/story`;
+export const PUZZLE_API_BASE_URL =
+  import.meta.env.VITE_PUZZLE_API_BASE_URL || `${BACKEND_BASE_URL}/puzzle`;
+export const USER_API_BASE_URL =
+  import.meta.env.VITE_USER_API_BASE_URL || `${BACKEND_BASE_URL}/user`;
+export const FAMILY_MOMENTS_API_BASE_URL =
+  import.meta.env.VITE_FAMILY_MOMENTS_API_BASE_URL || `${BACKEND_BASE_URL}/family-moment`;
+export const PUZZLE_WS_HTTP_ENDPOINT =
+  import.meta.env.VITE_PUZZLE_WS_HTTP_ENDPOINT || `${BACKEND_BASE_URL}/ws`;
+export const PUZZLE_WS_APP_PREFIX = import.meta.env.VITE_PUZZLE_WS_APP_PREFIX || "/app";
+export const PUZZLE_WS_TOPIC_PREFIX = import.meta.env.VITE_PUZZLE_WS_TOPIC_PREFIX || "/topic";
+
+export async function selectRole(userId: number) {
+  try {
+    const response = await fetch(`${USER_API_BASE_URL}/selectUser/${userId}`);
+    const resData = await response.json();
+
+    if (resData?.code === 0) {
+      const userInfo = resData.data;
+      localStorage.setItem("currentUser", JSON.stringify(userInfo));
+      return userInfo;
+    }
+  } catch (error) {
+    console.error("Failed to select role:", error);
+  }
+}
+
 // ============================================================================
 // STORY API - MySQL Database Operations
 // ============================================================================
@@ -349,8 +380,6 @@ export interface FamilyPhotoListResponse {
   page: number;
   pageSize: number;
 }
-
-const FAMILY_MOMENTS_API_BASE_URL = "http://192.168.1.104:8080/family-moment";
 
 function toPositiveInt(value: unknown, fallback: number): number {
   const num = Number(value);

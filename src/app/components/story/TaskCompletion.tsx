@@ -7,8 +7,8 @@ import {
   Send,
   Sparkles,
 } from "lucide-react";
-import { Story, TaskCompletion as TaskCompletionType } from "../../types/story";
-import { fetchStories, saveTaskCompletion, updateStory } from "../../services/api";
+import { Story, TaskCompletion as TaskCompletionType } from "../../../types/story";
+import { fetchStories, saveTaskCompletion, updateStory } from "../../../services/api";
 
 export function TaskCompletion() {
   const { storyId } = useParams();
@@ -210,7 +210,7 @@ export function TaskCompletion() {
           <div className="flex items-start gap-3">
             <Sparkles className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="text-sm text-purple-800 mb-1">âœ¨ Your Task</h3>
+              <h3 className="text-sm text-purple-800 mb-1">âœ?Your Task</h3>
               <p className="text-sm text-gray-700 leading-relaxed">
                 {story.taskData.prompt}
               </p>
@@ -294,7 +294,7 @@ export function TaskCompletion() {
               {photoFile && (
                 <div className="mt-3 bg-green-50 rounded-xl p-2 border border-green-200">
                   <p className="text-xs text-green-700 text-center">
-                    Photo selected! âœ“
+                    Photo selected! âœ?
                   </p>
                 </div>
               )}

@@ -1,19 +1,19 @@
 import { createHashRouter } from "react-router";
-import { Welcome } from "./components/Welcome";
-import { CharacterSelection } from "./components/CharacterSelection";
-import { GrandparentsCenter } from "./components/GrandparentsCenter";
-import { GrandchildCenter } from "./components/GrandchildCenter";
-import { MemoryPuzzle } from "./components/MemoryPuzzle";
-import { PuzzleSelection } from "./components/PuzzleSelection";
-import { StoryTime } from "./components/StoryTime";
-import { StoryLibraryGrandparent } from "./components/StoryLibraryGrandparent";
-import { StoryLibraryChild } from "./components/StoryLibraryChild";
-import { CreateStory } from "./components/CreateStory";
-import { TaskCompletion } from "./components/TaskCompletion";
-import { StoryPlayer } from "./components/StoryPlayer";
-import { HistoryGame } from "./components/HistoryGame";
-import { FamilyMoments } from "./components/FamilyMoments";
-import { FamilyMomentStoryUpload } from "./components/FamilyMomentStoryUpload";
+import { Welcome } from "./components/core/Welcome";
+import { CharacterSelection } from "./components/core/CharacterSelection";
+import { GrandparentsCenter } from "./components/core/GrandparentsCenter";
+import { GrandchildCenter } from "./components/core/GrandchildCenter";
+import { MemoryPuzzle } from "./components/puzzle/MemoryPuzzle";
+import { PuzzleSelection } from "./components/puzzle/PuzzleSelection";
+import { StoryTime } from "./components/puzzle/StoryTime";
+import { StoryLibraryGrandparent } from "./components/story/StoryLibraryGrandparent";
+import { StoryLibraryChild } from "./components/story/StoryLibraryChild";
+import { CreateStory } from "./components/story/CreateStory";
+import { TaskCompletion } from "./components/story/TaskCompletion";
+import { StoryPlayer } from "./components/story/StoryPlayer";
+import { HistoryGame } from "./components/game/HistoryGame";
+import { FamilyMoments } from "./components/moment/FamilyMoments";
+import { FamilyMomentStoryUpload } from "./components/moment/FamilyMomentStoryUpload";
 
 export const router = createHashRouter([
   {

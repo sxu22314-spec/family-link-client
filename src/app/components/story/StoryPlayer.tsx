@@ -11,8 +11,8 @@ import {
   Star,
   CheckCircle,
 } from "lucide-react";
-import { Story } from "../../types/story";
-import { fetchStories, updateStory } from "../../services/api";
+import { Story } from "../../../types/story";
+import { fetchStories, updateStory } from "../../../services/api";
 
 export function StoryPlayer() {
   const { storyId } = useParams();
@@ -267,7 +267,7 @@ export function StoryPlayer() {
         <div className="bg-gradient-to-r from-purple-100 to-fuchsia-100 rounded-2xl p-4 border-2 border-purple-200">
           <div className="text-center">
             <p className="text-sm text-gray-700 mb-2">
-              âœ¨ Every story is a precious gift from your grandparents
+              âœ?Every story is a precious gift from your grandparents
             </p>
             <p className="text-xs text-gray-500">
               Each tale carries love, wisdom, and memories to cherish forever

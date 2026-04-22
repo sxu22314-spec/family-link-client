@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import { ArrowLeft, CheckCircle, Play, Puzzle as PuzzleIcon, Star, Trophy } from "lucide-react";
-import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { ImageWithFallback } from "../figma/ImageWithFallback";
+import { PUZZLE_API_BASE_URL } from "../../../services/api";
 
 interface PuzzleOption {
   id: string;
@@ -50,7 +51,7 @@ export function PuzzleSelection() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await fetch("http://192.168.1.104:8080/puzzle/getAllpuzzles");
+        const response = await fetch(`${PUZZLE_API_BASE_URL}/getAllpuzzles`);
         const result = await response.json();
 
         if (result.code === 0) {

@@ -1,5 +1,6 @@
 import { Client, IMessage, StompSubscription } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
+import { PUZZLE_WS_APP_PREFIX, PUZZLE_WS_HTTP_ENDPOINT, PUZZLE_WS_TOPIC_PREFIX } from "./api";
 
 export type PuzzleRole = "grandson" | "grandparents";
 export type PuzzleEventType =
@@ -56,11 +57,6 @@ interface PuzzleSyncClientOptions {
   onError?: (message: string) => void;
 }
 
-const WS_HTTP_ENDPOINT =
-  import.meta.env.VITE_PUZZLE_WS_HTTP_ENDPOINT || "http://192.168.1.104:8080/ws";
-const APP_PREFIX = import.meta.env.VITE_PUZZLE_WS_APP_PREFIX || "/app";
-const TOPIC_PREFIX = import.meta.env.VITE_PUZZLE_WS_TOPIC_PREFIX || "/topic";
-
 /**
  * BACKEND REQUIRED (Spring Boot + STOMP):
  * 1. Expose SockJS endpoint:   registry.addEndpoint("/ws").setAllowedOriginPatterns("*").withSockJS();
@@ -83,14 +79,14 @@ export class PuzzleSyncClient {
   constructor(options: PuzzleSyncClientOptions) {
     this.options = options;
     this.client = new Client({
-      webSocketFactory: () => new SockJS(WS_HTTP_ENDPOINT),
+      webSocketFactory: () => new SockJS(PUZZLE_WS_HTTP_ENDPOINT),
       reconnectDelay: 3000,
       heartbeatIncoming: 10000,
       heartbeatOutgoing: 10000,
       onConnect: () => {
         this.options.onConnectionChange?.(true);
         this.subscription = this.client.subscribe(
-          `${TOPIC_PREFIX}/puzzle/${this.options.roomId}`,
+          `${PUZZLE_WS_TOPIC_PREFIX}/puzzle/${this.options.roomId}`,
           this.handleMessage
         );
       },
@@ -171,7 +167,7 @@ export class PuzzleSyncClient {
     };
 
     this.client.publish({
-      destination: `${APP_PREFIX}/${destinationSuffix}`,
+      destination: `${PUZZLE_WS_APP_PREFIX}/${destinationSuffix}`,
       body: JSON.stringify(envelope),
     });
   }
