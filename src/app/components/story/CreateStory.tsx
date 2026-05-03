@@ -197,7 +197,7 @@ export function CreateStory() {
               disabled={!title || !subject || !description}
               className="w-full bg-gradient-to-r from-sky-500 to-blue-500 text-white py-4 rounded-2xl hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
-              Next: Choose Task ‚Ü?
+              Next: Choose Task
             </button>
           </div>
         )}
@@ -225,7 +225,7 @@ export function CreateStory() {
                     className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-400 focus:outline-none"
                   >
                     <option value="drawing">üé® Drawing Task</option>
-                    <option value="question">‚ù?Answer a Question</option>
+                    <option value="question">‚ùì Answer a Question</option>
                     <option value="memory-match">üéÆ Memory Match</option>
                     <option value="photo-upload">üì∏ Upload a Photo</option>
                   </select>
@@ -331,14 +331,14 @@ export function CreateStory() {
                 onClick={() => setStep(1)}
                 className="flex-1 bg-gray-200 text-gray-700 py-4 rounded-2xl hover:bg-gray-300 transition-all font-medium"
               >
-                ‚Ü?Back
+                Back
               </button>
               <button
                 onClick={() => setStep(3)}
                 disabled={!taskPrompt}
                 className="flex-1 bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white py-4 rounded-2xl hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
               >
-                Next: Upload Audio ‚Ü?
+                Next: Upload Audio
               </button>
             </div>
           </div>
@@ -407,7 +407,7 @@ export function CreateStory() {
                 onClick={() => setStep(2)}
                 className="flex-1 bg-gray-200 text-gray-700 py-4 rounded-2xl hover:bg-gray-300 transition-all font-medium"
               >
-                ‚Ü?Back
+                Back
               </button>
               <button
                 onClick={handleSubmit}

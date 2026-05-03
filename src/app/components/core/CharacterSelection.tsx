@@ -12,14 +12,14 @@ export function CharacterSelection() {
   // 2. 核心处理逻辑
   // ============================================================================
   const handleCharacterSelect = async (character: "grandparents" | "grandson") => {
-    // 映射前端角色到后�?ID
+    // 映射前端角色到后端ID
     const roleId = character === "grandparents" ? 2 : 1;
 
     // 调用 API 获取数据
     const userInfo = await selectRole(roleId);
 
     if (userInfo) {
-      // 将用户信息保存到本地，供后续 Dashboard 或上传功能使�?
+      // 将用户信息保存到本地，供后续 Dashboard 或上传功能使用
       localStorage.setItem("currentUser", JSON.stringify(userInfo));
       
       // 跳转到对应的 Dashboard

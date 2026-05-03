@@ -148,7 +148,7 @@ export function FamilyMoments() {
   const handleUploadSubmit = async () => {
     // Validation
     if (!uploadForm.title.trim()) {
-      setUploadError("请输入照片标�?(Title is required)");
+      setUploadError("请输入照片标题 (Title is required)");
       return;
     }
 

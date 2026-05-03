@@ -21,7 +21,7 @@ const API_CONFIG = {
 };
 
 // Unified backend URL configuration (Vite)
-const BACKEND_BASE_URL = import.meta.env.VITE_BACKEND_BASE_URL || "http://192.168.1.104:8080";
+const BACKEND_BASE_URL = import.meta.env.VITE_BACKEND_BASE_URL || "http://192.168.0.36:8080";
 
 export const STORY_API_BASE_URL =
   import.meta.env.VITE_STORY_API_BASE_URL || `${BACKEND_BASE_URL}/story`;
