@@ -12,24 +12,28 @@ import {
   Play,
 } from "lucide-react";
 import { Story } from "../../../types/story";
-import { fetchStories, deleteStory } from "../../../services/api";
+import { fetchStoriesPaginated, deleteStory } from "../../../services/api";
 
 export function StoryLibraryGrandparent() {
   const navigate = useNavigate();
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const pageSize = 4;
 
   useEffect(() => {
     loadStories();
-  }, []);
+  }, [page]);
 
   const loadStories = async () => {
     try {
       setLoading(true);
       // TODO: Replace with actual user ID from auth context
-      const userId = "grandparent-1";
-      const fetchedStories = await fetchStories(userId);
-      setStories(fetchedStories);
+      
+      const result = await fetchStoriesPaginated({ page, pageSize });
+      setStories(result.stories);
+      setTotal(result.total);
     } catch (error) {
       console.error("Error loading stories:", error);
     } finally {
@@ -41,12 +45,14 @@ export function StoryLibraryGrandparent() {
     if (confirm("Are you sure you want to delete this story?")) {
       try {
         await deleteStory(storyId);
-        setStories(stories.filter((s) => s.id !== storyId));
+        await loadStories();
       } catch (error) {
         console.error("Error deleting story:", error);
       }
     }
   };
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
     <div className="h-full bg-gradient-to-b from-amber-50 via-orange-50 to-rose-50 overflow-y-auto">
@@ -188,6 +194,28 @@ export function StoryLibraryGrandparent() {
             ))
           )}
         </div>
+
+        {!loading && total > 0 && (
+          <div className="mt-5 flex items-center justify-center gap-3">
+            <button
+              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              disabled={page <= 1}
+              className="px-4 py-2 rounded-xl border border-sky-200 bg-white text-sky-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-gray-600">
+              Page {page} / {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={page >= totalPages}
+              className="px-4 py-2 rounded-xl border border-sky-200 bg-white text-sky-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+        )}
 
         <div className="mt-6 text-center">
           <p className="text-xs text-gray-500">

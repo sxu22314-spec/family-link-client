@@ -26,5 +26,3 @@ export default function App() {
   );
 }
 
-// 这是一个“手机外壳”容器，它负责把你的网页内容按照指定的尺寸锁死在一个手机框里，
-// 并利用 React Router 来管理内部页面的切换。

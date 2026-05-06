@@ -12,7 +12,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { Story } from "../../../types/story";
-import { fetchStories, updateStory } from "../../../services/api";
+import { getChildStoryById } from "./data/presetChildStories";
 
 export function StoryPlayer() {
   const { storyId } = useParams();
@@ -21,7 +21,7 @@ export function StoryPlayer() {
   const [loading, setLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(180); // Default 3 mins
+  const [duration, setDuration] = useState(180);
   const [liked, setLiked] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -32,15 +32,9 @@ export function StoryPlayer() {
   const loadStory = async () => {
     try {
       setLoading(true);
-      const userId = "grandparent-1";
-      const stories = await fetchStories(userId);
-      const foundStory = stories.find((s) => s.id === storyId);
+      const foundStory = storyId ? getChildStoryById(storyId) : null;
       if (foundStory) {
         setStory(foundStory);
-        // Increment listen count
-        await updateStory(foundStory.id, {
-          listenCount: foundStory.listenCount + 1,
-        });
       }
     } catch (error) {
       console.error("Error loading story:", error);
@@ -63,22 +57,28 @@ export function StoryPlayer() {
         audioRef.current.play();
       }
       setIsPlaying(!isPlaying);
+      return;
     }
+
+    setIsPlaying((prev) => !prev);
   };
 
   const handleSkipBack = () => {
     if (audioRef.current) {
       audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 10);
+      return;
     }
+
+    setCurrentTime((prev) => Math.max(0, prev - 10));
   };
 
   const handleSkipForward = () => {
     if (audioRef.current) {
-      audioRef.current.currentTime = Math.min(
-        duration,
-        audioRef.current.currentTime + 10
-      );
+      audioRef.current.currentTime = Math.min(duration, audioRef.current.currentTime + 10);
+      return;
     }
+
+    setCurrentTime((prev) => Math.min(duration, prev + 10));
   };
 
   if (loading) {
@@ -105,7 +105,7 @@ export function StoryPlayer() {
       <div className="h-full bg-gradient-to-b from-amber-50 via-orange-50 to-rose-50 flex items-center justify-center px-6">
         <div className="text-center">
           <div className="w-20 h-20 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4">
-            <span className="text-4xl">🔒</span>
+            <span className="text-4xl">Locked</span>
           </div>
           <h2 className="text-xl text-gray-800 mb-2">Story Locked</h2>
           <p className="text-gray-600 mb-4">
@@ -136,27 +136,14 @@ export function StoryPlayer() {
         <div className="text-center mb-5">
           <h1 className="text-3xl mb-1 text-amber-700">Story Time</h1>
           <p className="text-base text-gray-700 mb-2">{story.title}</p>
-          <p className="text-sm text-gray-600 px-4">
-            A story from your grandparents
-          </p>
+          <p className="text-sm text-gray-600 px-4">A story from your grandparents</p>
         </div>
 
-        {/* Story Card */}
         <div className="bg-gradient-to-br from-white to-green-50 rounded-3xl shadow-xl p-6 mb-4 border-2 border-green-200">
-          {/* Cover Image or Icon */}
           <div className="w-full h-40 rounded-2xl overflow-hidden mb-4 bg-gradient-to-br from-green-200 to-emerald-300 flex items-center justify-center border-2 border-green-100 shadow-md">
-            {story.coverImageUrl ? (
-              <img
-                src={story.coverImageUrl}
-                alt={story.title}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <span className="text-6xl">📖</span>
-            )}
+            <span className="text-5xl">Story</span>
           </div>
 
-          {/* Story Info */}
           <div className="text-center mb-4">
             <h2 className="text-2xl mb-1 text-gray-800">{story.title}</h2>
             <p className="text-sm text-gray-600 mb-3">{story.description}</p>
@@ -171,16 +158,13 @@ export function StoryPlayer() {
             </div>
           </div>
 
-          {/* Stats */}
           <div className="grid grid-cols-2 gap-2 mb-4">
             <div className="bg-green-50 rounded-lg p-2 border border-green-200">
               <div className="flex items-center justify-center gap-1 mb-1">
                 <Play className="w-3.5 h-3.5 text-green-600" />
                 <span className="text-xs text-gray-600">Listened</span>
               </div>
-              <p className="text-sm text-center text-gray-800">
-                {story.listenCount} times
-              </p>
+              <p className="text-sm text-center text-gray-800">{story.listenCount} times</p>
             </div>
             <div className="bg-amber-50 rounded-lg p-2 border border-amber-200">
               <div className="flex items-center justify-center gap-1 mb-1">
@@ -191,7 +175,6 @@ export function StoryPlayer() {
             </div>
           </div>
 
-          {/* Audio Player */}
           <div className="mb-4">
             <div className="w-full bg-green-100 rounded-full h-3 mb-2 shadow-inner">
               <div
@@ -205,7 +188,6 @@ export function StoryPlayer() {
             </div>
           </div>
 
-          {/* Playback Controls */}
           <div className="flex items-center justify-center gap-5 mb-4">
             <button
               onClick={handleSkipBack}
@@ -233,7 +215,6 @@ export function StoryPlayer() {
             </button>
           </div>
 
-          {/* Action Buttons */}
           <div className="flex gap-3">
             <button
               onClick={() => setLiked(!liked)}
@@ -251,7 +232,6 @@ export function StoryPlayer() {
             </button>
           </div>
 
-          {/* Hidden audio element */}
           {story.audioUrl && (
             <audio
               ref={audioRef}
@@ -263,15 +243,10 @@ export function StoryPlayer() {
           )}
         </div>
 
-        {/* Appreciation Message */}
         <div className="bg-gradient-to-r from-purple-100 to-fuchsia-100 rounded-2xl p-4 border-2 border-purple-200">
           <div className="text-center">
-            <p className="text-sm text-gray-700 mb-2">
-              �?Every story is a precious gift from your grandparents
-            </p>
-            <p className="text-xs text-gray-500">
-              Each tale carries love, wisdom, and memories to cherish forever
-            </p>
+            <p className="text-sm text-gray-700 mb-2">Every story is a precious gift from your grandparents</p>
+            <p className="text-xs text-gray-500">Each tale carries love, wisdom, and memories to cherish forever</p>
           </div>
         </div>
       </div>

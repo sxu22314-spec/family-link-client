@@ -95,6 +95,6 @@ export const router = createHashRouter([
   },
   {
     path: "/story-library/preview/:storyId",
-    Component: StoryPlayer, // Can reuse StoryPlayer for preview
+    Component: StoryTime,
   },
 ]);

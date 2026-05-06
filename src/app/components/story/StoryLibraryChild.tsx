@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, Book, Lock, Unlock, Play, Star, CheckCircle } from "lucide-react";
 import { Story } from "../../../types/story";
-import { fetchStories } from "../../../services/api";
+import { getChildStories } from "./data/presetChildStories";
 
 export function StoryLibraryChild() {
   const navigate = useNavigate();
@@ -16,10 +16,7 @@ export function StoryLibraryChild() {
   const loadStories = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual user ID from auth context
-      const userId = "grandparent-1"; // Load stories from the grandparent
-      const fetchedStories = await fetchStories(userId);
-      setStories(fetchedStories);
+      setStories(getChildStories());
     } catch (error) {
       console.error("Error loading stories:", error);
     } finally {
@@ -162,7 +159,7 @@ function StoryCard({
 }) {
   const taskLabels: Record<string, string> = {
     drawing: "🎨 Drawing",
-    question: "�?Question",
+    question: "Question",
     "memory-match": "🎮 Memory Match",
     "photo-upload": "📸 Photo",
   };

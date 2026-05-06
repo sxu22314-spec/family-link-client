@@ -2,14 +2,12 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router";
 import {
   ArrowLeft,
-  Upload,
   Mic,
-  Image as ImageIcon,
   Save,
   AlertCircle,
 } from "lucide-react";
-import { Story, TaskType, TaskData } from "../../../types/story";
-import { createStory, uploadAudioFile, uploadCoverImage, updateStory } from "../../../services/api";
+import { TaskType, TaskData } from "../../../types/story";
+import { createStory } from "../../../services/api";
 
 export function CreateStory() {
   const navigate = useNavigate();
@@ -19,25 +17,16 @@ export function CreateStory() {
   // Form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [subject, setSubject] = useState("");
   const [taskType, setTaskType] = useState<TaskType>("drawing");
-  const [taskPrompt, setTaskPrompt] = useState("");
   const [taskDetails, setTaskDetails] = useState<Partial<TaskData>>({});
+  const [uploadAudio, setUploadAudio] = useState(false);
   const [audioFile, setAudioFile] = useState<File | null>(null);
-  const [coverImage, setCoverImage] = useState<File | null>(null);
 
   const audioInputRef = useRef<HTMLInputElement>(null);
-  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const handleAudioSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setAudioFile(e.target.files[0]);
-    }
-  };
-
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setCoverImage(e.target.files[0]);
     }
   };
 
@@ -48,32 +37,21 @@ export function CreateStory() {
       // Build task data
       const taskData: TaskData = {
         type: taskType,
-        prompt: taskPrompt,
+        prompt: `Complete the ${taskType.replace("-", " ")} task to unlock this story`,
         ...taskDetails,
       };
 
-      // Create story in database (without audio/image URLs)
-      const newStory = await createStory({
+      await createStory({
         title,
         description,
-        subject,
+        subject: title,
         taskType,
         taskData,
         isLocked: true,
         listenCount: 0,
+        uploadAudio,
+        audioFile: uploadAudio ? audioFile : null,
       });
-
-      // Upload audio file to MinIO
-      if (audioFile) {
-        const audioUrl = await uploadAudioFile(audioFile, newStory.id);
-        await updateStory(newStory.id, { audioUrl });
-      }
-
-      // Upload cover image to MinIO (optional)
-      if (coverImage) {
-        const coverImageUrl = await uploadCoverImage(coverImage, newStory.id);
-        await updateStory(newStory.id, { coverImageUrl });
-      }
 
       // Navigate back to library
       alert("Story created successfully!");
@@ -142,19 +120,6 @@ export function CreateStory() {
 
                 <div>
                   <label className="block text-sm text-gray-700 mb-2">
-                    What/Who is this story about? *
-                  </label>
-                  <input
-                    type="text"
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    placeholder="e.g., Grandma, Uncle Tom, the old oak tree"
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-sky-400 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm text-gray-700 mb-2">
                     Story Description *
                   </label>
                   <textarea
@@ -166,35 +131,12 @@ export function CreateStory() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm text-gray-700 mb-2">
-                    Cover Image (Optional)
-                  </label>
-                  <input
-                    ref={imageInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageSelect}
-                    className="hidden"
-                  />
-                  <button
-                    onClick={() => imageInputRef.current?.click()}
-                    className="w-full border-2 border-dashed border-sky-300 rounded-xl p-4 bg-sky-50 hover:bg-sky-100 transition-colors"
-                  >
-                    <div className="flex flex-col items-center gap-2">
-                      <ImageIcon className="w-6 h-6 text-sky-500" />
-                      <p className="text-sm text-gray-700">
-                        {coverImage ? coverImage.name : "Tap to upload image"}
-                      </p>
-                    </div>
-                  </button>
-                </div>
               </div>
             </div>
 
             <button
               onClick={() => setStep(2)}
-              disabled={!title || !subject || !description}
+              disabled={!title || !description}
               className="w-full bg-gradient-to-r from-sky-500 to-blue-500 text-white py-4 rounded-2xl hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
               Next: Choose Task
@@ -233,15 +175,16 @@ export function CreateStory() {
 
                 <div>
                   <label className="block text-sm text-gray-700 mb-2">
-                    Task Prompt *
+                    Upload Audio?
                   </label>
-                  <input
-                    type="text"
-                    value={taskPrompt}
-                    onChange={(e) => setTaskPrompt(e.target.value)}
-                    placeholder="e.g., Draw your favorite flower"
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-400 focus:outline-none"
-                  />
+                  <label className="flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-gray-200 bg-gray-50">
+                    <input
+                      type="checkbox"
+                      checked={uploadAudio}
+                      onChange={(e) => setUploadAudio(e.target.checked)}
+                    />
+                    <span className="text-sm text-gray-700">Upload narration audio for this story</span>
+                  </label>
                 </div>
 
                 {/* Task-specific fields */}
@@ -287,7 +230,7 @@ export function CreateStory() {
                 {taskType === "drawing" && (
                   <div>
                     <label className="block text-sm text-gray-700 mb-2">
-                      Drawing Instructions
+                      Notes (Optional)
                     </label>
                     <textarea
                       value={taskDetails.drawingPrompt || ""}
@@ -297,7 +240,7 @@ export function CreateStory() {
                           drawingPrompt: e.target.value,
                         })
                       }
-                      placeholder="Give specific instructions for the drawing..."
+                      placeholder="Optional notes for this task..."
                       rows={3}
                       className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-400 focus:outline-none resize-none"
                     />
@@ -335,7 +278,6 @@ export function CreateStory() {
               </button>
               <button
                 onClick={() => setStep(3)}
-                disabled={!taskPrompt}
                 className="flex-1 bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white py-4 rounded-2xl hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
               >
                 Next: Upload Audio
@@ -379,12 +321,13 @@ export function CreateStory() {
               />
               <button
                 onClick={() => audioInputRef.current?.click()}
+                disabled={!uploadAudio}
                 className="w-full border-2 border-dashed border-rose-300 rounded-xl p-6 bg-rose-50 hover:bg-rose-100 transition-colors"
               >
                 <div className="flex flex-col items-center gap-2">
                   <Mic className="w-8 h-8 text-rose-500" />
                   <p className="text-sm text-gray-700 font-medium">
-                    {audioFile ? audioFile.name : "Tap to upload audio file"}
+                    {!uploadAudio ? "Audio upload disabled" : audioFile ? audioFile.name : "Tap to upload audio file"}
                   </p>
                   <p className="text-xs text-gray-500">
                     Supported: MP3, WAV, M4A
@@ -392,7 +335,7 @@ export function CreateStory() {
                 </div>
               </button>
 
-              {audioFile && (
+              {audioFile && uploadAudio && (
                 <div className="mt-4 bg-green-50 rounded-xl p-3 border border-green-200">
                   <p className="text-sm text-green-700 flex items-center gap-2">
                     <Save className="w-4 h-4" />
@@ -411,7 +354,7 @@ export function CreateStory() {
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={!audioFile || loading}
+                disabled={(uploadAudio && !audioFile) || loading}
                 className="flex-1 bg-gradient-to-r from-rose-500 via-pink-500 to-orange-500 text-white py-4 rounded-2xl hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2"
               >
                 {loading ? (

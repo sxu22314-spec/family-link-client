@@ -148,17 +148,17 @@ export function FamilyMoments() {
   const handleUploadSubmit = async () => {
     // Validation
     if (!uploadForm.title.trim()) {
-      setUploadError("请输入照片标题 (Title is required)");
+      setUploadError("please enter a title (Title is required)");
       return;
     }
 
     if (!uploadForm.subject) {
-      setUploadError("请选择照片主题 (Theme is required)");
+      setUploadError("please select a subject (Subject is required)");
       return;
     }
 
     if (!uploadForm.file) {
-      setUploadError("请选择照片 (Please select a photo)");
+      setUploadError("please select a photo (Photo is required)");
       return;
     }
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import reading from "../../../assets/reading.png";
 import {
   ArrowLeft,
   Play,
@@ -34,7 +35,7 @@ const DEFAULT_DURATION_SECONDS = 180;
 
 export function StoryTime() {
   const navigate = useNavigate();
-  const { character, puzzleId } = useParams();
+  const { character, puzzleId, storyId } = useParams();
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -45,8 +46,9 @@ export function StoryTime() {
   const [hasReportedListen, setHasReportedListen] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement>(null);
+  const isPreviewMode = Boolean(storyId);
 
-  const isGrandparent = character === "grandparents";
+  const isGrandparent = character === "grandparents" || isPreviewMode;
   const duration = story?.durationSeconds ?? DEFAULT_DURATION_SECONDS;
 
   const formatTime = (seconds: number) => {
@@ -88,7 +90,9 @@ export function StoryTime() {
     let isCancelled = false;
 
     const fetchStoryDetail = async () => {
-      if (!puzzleId) {
+      const isPreviewMode = Boolean(storyId);
+
+      if (!isPreviewMode && !puzzleId) {
         setLoading(false);
         setLoadError("Missing photo id. Please return and complete a photo first.");
         return;
@@ -98,12 +102,11 @@ export function StoryTime() {
         setLoading(true);
         setLoadError(null);
 
-        // BACKEND REQUIRED:
-        // Recommended endpoint: GET /story/getByphotoId/{photoId}
-        // Compatible response shape:
-        // 1) { code: 0, data: {...tb_story row...} }
-        // 2) { code: 0, data: [{...tb_story row...}] }
-        const response = await fetch(`${STORY_API_BASE_URL}/getByPhotoId/${puzzleId}`);
+        const endpoint = isPreviewMode
+          ? `${STORY_API_BASE_URL}/getById/${storyId}`
+          : `${STORY_API_BASE_URL}/getByPhotoId/${puzzleId}`;
+
+        const response = await fetch(endpoint);
         const result = await response.json();
 
         if (result?.code !== undefined && result.code !== 0) {
@@ -138,7 +141,7 @@ export function StoryTime() {
     return () => {
       isCancelled = true;
     };
-  }, [puzzleId]);
+  }, [puzzleId, storyId]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -244,18 +247,18 @@ export function StoryTime() {
 
   const storyTitle = story?.title ?? "Story Time";
   const storyDescription = story?.description ?? "Loading story details...";
-  const storySubject = story?.subject ?? "Family Moments";
-  const storyImage = story?.coverImageUrl || DEFAULT_STORY_IMAGE;
+  const storySubject = story?.audioUrl ? story?.subject ?? "Family Moments" : storyDescription;
+  const storyImage = story?.coverImageUrl || reading;
 
   return (
     <div className="h-full bg-gradient-to-b from-amber-50 via-orange-50 to-rose-50 overflow-y-auto">
       <div className="px-6 py-6">
         <button
-          onClick={() => navigate(`/puzzle-selection/${character}`)}
+          onClick={() => navigate(isPreviewMode ? "/story-library/grandparents" : `/puzzle-selection/${character}`)}
           className="flex items-center gap-2 text-amber-700 mb-4 hover:text-amber-900 bg-white/60 px-4 py-2 rounded-full backdrop-blur"
         >
           <ArrowLeft className="w-5 h-5" />
-          <span>Back to Puzzle Selection</span>
+          <span>{isPreviewMode ? "Back to Story Library" : "Back to Puzzle Selection"}</span>
         </button>
 
         <div className="text-center mb-5">
@@ -275,10 +278,10 @@ export function StoryTime() {
             <p className="text-red-600 mb-2">Failed to load story</p>
             <p className="text-sm text-gray-600 mb-4">{loadError}</p>
             <button
-              onClick={() => navigate(`/puzzle-selection/${character}`)}
+              onClick={() => navigate(isPreviewMode ? "/story-library/grandparents" : `/puzzle-selection/${character}`)}
               className="px-4 py-2 rounded-xl bg-amber-100 border border-amber-200 text-amber-800"
             >
-              Back to Puzzle Selection
+              {isPreviewMode ? "Back to Story Library" : "Back to Puzzle Selection"}
             </button>
           </div>
         ) : (
@@ -286,7 +289,7 @@ export function StoryTime() {
             <div className="bg-gradient-to-br from-white to-orange-50 rounded-3xl shadow-xl p-6 mb-4 border-2 border-orange-200">
               <div className="mb-6">
                 <div className="w-full h-48 rounded-2xl overflow-hidden mb-4 border-2 border-orange-100 shadow-md">
-                  <ImageWithFallback src={storyImage} alt={storyTitle} className="w-full h-full object-cover" />
+                  <ImageWithFallback src={reading} alt={storyTitle} className="w-full h-full object-cover" />
                 </div>
                 <div className="text-center mb-4">
                   <h2 className="text-2xl mb-1 text-gray-800">{storyTitle}</h2>
@@ -381,15 +384,11 @@ export function StoryTime() {
                 <BookOpen className="w-5 h-5 text-sky-600" />
                 <h3 className="text-lg text-gray-800">Story Summary</h3>
               </div>
-                  <p className="text-sm text-gray-700 leading-relaxed mb-4">
-                    ......
-                  </p>
               <div className="bg-sky-50 rounded-xl p-3 mb-4 border border-sky-100">
                 <p className="text-xs text-gray-600 mb-2">{storyDescription}</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <span className="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-sm border border-emerald-200">Story</span>
-                <span className="px-3 py-1.5 bg-amber-100 text-amber-700 rounded-full text-sm border border-amber-200">{storySubject}</span>
                 <span className="px-3 py-1.5 bg-rose-100 text-rose-700 rounded-full text-sm border border-rose-200">Family Memories</span>
                 <span className="px-3 py-1.5 bg-sky-100 text-sky-700 rounded-full text-sm border border-sky-200">Love & Wisdom</span>
               </div>

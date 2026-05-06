@@ -2,13 +2,11 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
   ArrowLeft,
-  CheckCircle,
   Unlock,
-  Send,
   Sparkles,
 } from "lucide-react";
 import { Story, TaskCompletion as TaskCompletionType } from "../../../types/story";
-import { fetchStories, saveTaskCompletion, updateStory } from "../../../services/api";
+import { getChildStoryById, unlockChildStory } from "./data/presetChildStories";
 
 export function TaskCompletion() {
   const { storyId } = useParams();
@@ -17,13 +15,10 @@ export function TaskCompletion() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // Task response states
   const [answer, setAnswer] = useState("");
   const [drawingCanvas, setDrawingCanvas] = useState<HTMLCanvasElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const photoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadStory();
@@ -43,9 +38,7 @@ export function TaskCompletion() {
   const loadStory = async () => {
     try {
       setLoading(true);
-      const userId = "grandparent-1";
-      const stories = await fetchStories(userId);
-      const foundStory = stories.find((s) => s.id === storyId);
+      const foundStory = storyId ? getChildStoryById(storyId) : null;
       if (foundStory) {
         setStory(foundStory);
       }
@@ -62,7 +55,6 @@ export function TaskCompletion() {
     try {
       setSubmitting(true);
 
-      // Build task completion based on type
       const completion: TaskCompletionType = {
         storyId: story.id,
         completedAt: new Date(),
@@ -71,37 +63,12 @@ export function TaskCompletion() {
         },
       };
 
-      switch (story.taskType) {
-        case "question":
-          completion.taskResponse.answer = answer.trim().toLowerCase();
-          // Validate answer
-          if (
-            story.taskData.correctAnswer &&
-            completion.taskResponse.answer !== story.taskData.correctAnswer
-          ) {
-            alert("That's not quite right. Try again!");
-            setSubmitting(false);
-            return;
-          }
-          break;
+      if (story.taskType === "question") {
+        completion.taskResponse.answer = answer.trim().toLowerCase();
+      }
 
-        case "drawing":
-          if (drawingCanvas) {
-            completion.taskResponse.drawingDataUrl = drawingCanvas.toDataURL();
-          }
-          break;
-
-        case "photo-upload":
-          if (photoFile) {
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-              completion.taskResponse.photoDataUrl = e.target?.result as string;
-              await finishSubmission(completion);
-            };
-            reader.readAsDataURL(photoFile);
-            return;
-          }
-          break;
+      if (story.taskType === "drawing" && drawingCanvas) {
+        completion.taskResponse.drawingDataUrl = drawingCanvas.toDataURL();
       }
 
       await finishSubmission(completion);
@@ -114,14 +81,9 @@ export function TaskCompletion() {
 
   const finishSubmission = async (completion: TaskCompletionType) => {
     try {
-      // Save task completion
-      await saveTaskCompletion(completion);
-
-      // Unlock the story
-      await updateStory(story!.id, { isLocked: false });
-
-      // Show success and navigate to listen
-      alert("ðŸŽ‰ Great job! Story unlocked!");
+      console.log("Task completion saved locally:", completion);
+      unlockChildStory(story!.id);
+      alert("Great job! Story unlocked!");
       navigate(`/story-library/listen/${story!.id}`);
     } catch (error) {
       console.error("Error finishing submission:", error);
@@ -129,7 +91,6 @@ export function TaskCompletion() {
     }
   };
 
-  // Drawing handlers
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!drawingCanvas) return;
     setIsDrawing(true);
@@ -205,12 +166,11 @@ export function TaskCompletion() {
           </p>
         </div>
 
-        {/* Task Instructions */}
         <div className="bg-gradient-to-r from-purple-100 to-fuchsia-100 rounded-2xl p-4 mb-5 border-2 border-purple-200">
           <div className="flex items-start gap-3">
             <Sparkles className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="text-sm text-purple-800 mb-1">âœ?Your Task</h3>
+              <h3 className="text-sm text-purple-800 mb-1">Your Task</h3>
               <p className="text-sm text-gray-700 leading-relaxed">
                 {story.taskData.prompt}
               </p>
@@ -218,7 +178,6 @@ export function TaskCompletion() {
           </div>
         </div>
 
-        {/* Task Interface */}
         <div className="bg-white rounded-3xl p-6 border-2 border-sky-200 shadow-lg mb-5">
           {story.taskType === "question" && (
             <div>
@@ -233,7 +192,7 @@ export function TaskCompletion() {
                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-sky-400 focus:outline-none text-base"
               />
               <p className="text-xs text-gray-500 mt-2">
-                ðŸ’¡ Hint: Think about what you learned from the story description
+                Any answer is accepted for this demo task.
               </p>
             </div>
           )}
@@ -263,64 +222,11 @@ export function TaskCompletion() {
               </button>
             </div>
           )}
-
-          {story.taskType === "photo-upload" && (
-            <div>
-              <p className="text-sm text-gray-700 mb-3">
-                {story.taskData.photoPrompt}
-              </p>
-              <input
-                ref={photoInputRef}
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    setPhotoFile(e.target.files[0]);
-                  }
-                }}
-                className="hidden"
-              />
-              <button
-                onClick={() => photoInputRef.current?.click()}
-                className="w-full border-2 border-dashed border-sky-300 rounded-xl p-6 bg-sky-50 hover:bg-sky-100 transition-colors"
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <span className="text-3xl">ðŸ“¸</span>
-                  <p className="text-sm text-gray-700">
-                    {photoFile ? photoFile.name : "Tap to upload photo"}
-                  </p>
-                </div>
-              </button>
-              {photoFile && (
-                <div className="mt-3 bg-green-50 rounded-xl p-2 border border-green-200">
-                  <p className="text-xs text-green-700 text-center">
-                    Photo selected! âœ?
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {story.taskType === "memory-match" && (
-            <div>
-              <p className="text-sm text-gray-700 mb-3">
-                Match the pairs to complete the task
-              </p>
-              <div className="text-center text-gray-500 py-8">
-                <p className="text-sm">Memory match interface coming soon...</p>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Submit Button */}
         <button
           onClick={handleSubmit}
-          disabled={
-            submitting ||
-            (story.taskType === "question" && !answer.trim()) ||
-            (story.taskType === "photo-upload" && !photoFile)
-          }
+          disabled={submitting}
           className="w-full bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 text-white py-4 rounded-2xl hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2"
         >
           {submitting ? (
@@ -338,7 +244,7 @@ export function TaskCompletion() {
 
         <div className="mt-4 text-center">
           <p className="text-xs text-gray-500">
-            Complete the task correctly to unlock the story
+            After unlock, you can enter the story directly next time.
           </p>
         </div>
       </div>
