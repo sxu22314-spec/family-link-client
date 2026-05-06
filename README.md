@@ -12,15 +12,9 @@ A mobile-first web application that connects grandparents and grandchildren thro
 | **Styling** | Tailwind CSS 4 + tw-animate-css |
 | **UI Library** | shadcn/ui (Radix primitives) |
 | **Animation** | Motion (Framer Motion) |
-| **Charts** | Recharts |
-| **Icons** | Lucide React |
 | **State / Form** | React Hook Form |
-| **Drag & Drop** | react-dnd |
 | **Real-time** | STOMP.js + SockJS (WebSocket) |
-| **Date** | date-fns + react-day-picker |
-| **Notifications** | Sonner (toast) |
-| **Image Gallery** | react-responsive-masonry |
-| **Carousel** | Embla Carousel |
+
 
 ## Project Structure
 
@@ -96,7 +90,7 @@ Copy the following into a `.env` file at the project root:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `VITE_BACKEND_BASE_URL` | `http://192.168.1.106:8080` | Backend server base URL |
+| `VITE_BACKEND_BASE_URL` | `http://your_IPV4_Adress :8080` | Backend server base URL |
 | `VITE_STORY_API_BASE_URL` | `{base}/story` | Story API base URL |
 | `VITE_PUZZLE_API_BASE_URL` | `{base}/puzzle` | Puzzle API base URL |
 | `VITE_USER_API_BASE_URL` | `{base}/user` | User API base URL |
