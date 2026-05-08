@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Story } from "../../../types/story";
 import { getChildStoryById } from "./data/presetChildStories";
+import { fetchStoryById } from "../../../services/api";
 
 export function StoryPlayer() {
   const { storyId } = useParams();
@@ -33,8 +34,10 @@ export function StoryPlayer() {
     try {
       setLoading(true);
       const foundStory = storyId ? getChildStoryById(storyId) : null;
-      if (foundStory) {
-        setStory(foundStory);
+      const backendStory = !foundStory && storyId ? await fetchStoryById(storyId) : null;
+      const resolvedStory = foundStory || backendStory;
+      if (resolvedStory) {
+        setStory(resolvedStory);
       }
     } catch (error) {
       console.error("Error loading story:", error);

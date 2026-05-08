@@ -141,6 +141,15 @@ export async function fetchStories(userId?: string): Promise<Story[]> {
   return list.stories;
 }
 
+export async function fetchStoryById(storyId: string): Promise<Story | null> {
+  const response = await fetch(`${STORY_API_BASE_URL}/getById/${storyId}`);
+  const result = await response.json();
+  if (result?.code !== 0 || !result?.data) {
+    return null;
+  }
+  return normalizeStory(result.data);
+}
+
 export async function createStory(story: CreateStoryPayload): Promise<Story> {
   const formData = new FormData();
   formData.append("title", story.title);

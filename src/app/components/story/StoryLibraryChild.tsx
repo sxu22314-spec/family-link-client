@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { ArrowLeft, Book, Lock, Unlock, Play, Star, CheckCircle } from "lucide-react";
 import { Story } from "../../../types/story";
 import { getChildStories } from "./data/presetChildStories";
+import { fetchStoriesPaginated } from "../../../services/api";
 
 export function StoryLibraryChild() {
   const navigate = useNavigate();
@@ -16,7 +17,17 @@ export function StoryLibraryChild() {
   const loadStories = async () => {
     try {
       setLoading(true);
-      setStories(getChildStories());
+      const presetStories = getChildStories();
+      let backendStories: Story[] = [];
+      try {
+        const result = await fetchStoriesPaginated({ page: 1, pageSize: 100 });
+        backendStories = result.stories;
+      } catch {
+        // Backend unavailable, just show presets
+      }
+      const backendIds = new Set(backendStories.map((s) => s.id));
+      const merged = [...backendStories, ...presetStories.filter((s) => !backendIds.has(s.id))];
+      setStories(merged);
     } catch (error) {
       console.error("Error loading stories:", error);
     } finally {
