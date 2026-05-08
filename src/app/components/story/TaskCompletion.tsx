@@ -6,7 +6,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Story, TaskCompletion as TaskCompletionType } from "../../../types/story";
-import { getChildStoryById, unlockChildStory } from "./data/presetChildStories";
+import { getChildStoryById } from "./data/presetChildStories";
 
 export function TaskCompletion() {
   const { storyId } = useParams();
@@ -82,9 +82,8 @@ export function TaskCompletion() {
   const finishSubmission = async (completion: TaskCompletionType) => {
     try {
       console.log("Task completion saved locally:", completion);
-      unlockChildStory(story!.id);
-      alert("Great job! Story unlocked!");
-      navigate(`/story-library/listen/${story!.id}`);
+      alert("Please try again.");
+      setSubmitting(false);
     } catch (error) {
       console.error("Error finishing submission:", error);
       setSubmitting(false);

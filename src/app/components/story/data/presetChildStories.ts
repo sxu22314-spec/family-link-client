@@ -1,7 +1,5 @@
 import { Story } from "../../../../types/story";
 
-const STORAGE_KEY = "child_story_unlock_state_v1";
-
 export const PRESET_CHILD_STORIES: Story[] = [
   {
     id: "preset-story-1",
@@ -75,28 +73,10 @@ export const PRESET_CHILD_STORIES: Story[] = [
   },
 ];
 
-type UnlockState = Record<string, boolean>;
-
-function readUnlockState(): UnlockState {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-function writeUnlockState(state: UnlockState) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
-
 export function getChildStories(): Story[] {
-  const unlockState = readUnlockState();
   return PRESET_CHILD_STORIES.map((story) => ({
     ...story,
-    isLocked: !unlockState[story.id],
+    isLocked: true,
   }));
 }
 
@@ -104,8 +84,6 @@ export function getChildStoryById(storyId: string): Story | null {
   return getChildStories().find((story) => story.id === storyId) ?? null;
 }
 
-export function unlockChildStory(storyId: string) {
-  const unlockState = readUnlockState();
-  unlockState[storyId] = true;
-  writeUnlockState(unlockState);
+export function unlockChildStory(_storyId: string) {
+  // Intentionally disabled: grandchild stories cannot be unlocked by task input.
 }
