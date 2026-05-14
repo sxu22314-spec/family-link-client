@@ -3,7 +3,7 @@ import { Users, Baby, Heart, Sparkles, ArrowLeft } from "lucide-react";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import elderlyImage from "../../../assets/elderly.png";
 import childrenImage from "../../../assets/children.png"; 
-import { selectRole } from "../../../services/api";
+// import { selectRole } from "../../../services/api";
 
 export function CharacterSelection() {
   const navigate = useNavigate();
@@ -11,22 +11,26 @@ export function CharacterSelection() {
   // ============================================================================
   // 2. 核心处理逻辑
   // ============================================================================
-  const handleCharacterSelect = async (character: "grandparents" | "grandson") => {
-    // 映射前端角色到后端ID
-    const roleId = character === "grandparents" ? 2 : 1;
+  // const handleCharacterSelect = async (character: "grandparents" | "grandson") => {
+  //   // 映射前端角色到后端ID
+  //   const roleId = character === "grandparents" ? 2 : 1;
+  //
+  //   // 调用 API 获取数据
+  //   const userInfo = await selectRole(roleId);
+  //
+  //   if (userInfo) {
+  //     // 将用户信息保存到本地，供后续 Dashboard 或上传功能使用
+  //     localStorage.setItem("currentUser", JSON.stringify(userInfo));
+  //
+  //     // 跳转到对应的 Dashboard
+  //     navigate(`/dashboard/${character}`);
+  //   } else {
+  //     alert("无法获取用户信息，请检查后端服务是否启动。");
+  //   }
+  // };
 
-    // 调用 API 获取数据
-    const userInfo = await selectRole(roleId);
-
-    if (userInfo) {
-      // 将用户信息保存到本地，供后续 Dashboard 或上传功能使用
-      localStorage.setItem("currentUser", JSON.stringify(userInfo));
-      
-      // 跳转到对应的 Dashboard
-      navigate(`/dashboard/${character}`);
-    } else {
-      alert("无法获取用户信息，请检查后端服务是否启动。");
-    }
+  const handleCharacterSelect = (character: "grandparents" | "grandson") => {
+    navigate(`/dashboard/${character}`);
   };
 
   return (
