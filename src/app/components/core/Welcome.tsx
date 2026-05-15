@@ -55,6 +55,12 @@ export function Welcome() {
           >
             Tap to Continue
           </button>
+          <button
+            onClick={() => window.open("https://www.figma.com/make/wdkGDys0joKM7vPCE8KL8o/high-fi?p=f&t=YjOzSYGDD8jaGrDD-0&fullscreen=1", "_blank")}
+            className="w-full max-w-[280px] bg-white/60 backdrop-blur-sm text-[#2D2D2D] rounded-full px-8 py-3 text-sm border border-[#D4D0CB] hover:shadow-md transition-all transform hover:scale-[1.02] active:scale-95"
+          >
+            try time museum?
+          </button>
           <p className="text-xs text-gray-400 animate-bounce mt-2">Ready to start your journey?</p>
         </div>
 
